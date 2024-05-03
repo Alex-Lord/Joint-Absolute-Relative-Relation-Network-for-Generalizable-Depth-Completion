@@ -138,6 +138,7 @@ def DDP_main(rank, world_size):
         else:
             args.save_dir += '_gd'
     args.save_dir += '_' + args.mode
+    args.save_dir += '_' + args.mode + '_2'
     args.save_dir = Path(args.save_dir)
     args.model_dir = args.save_dir / 'models' / 'epoch_18.pth'
 
