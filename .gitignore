@@ -1,6 +1,6 @@
 *.png
 *.jpg
-./AbsRel_depth/Hole_datasets
-./AbsRel_depth/RGBD_datasets
-*_rz_sb_mar*/
 *.pyc
+*_rz_sb_mar*/
+*dataset*/
+./AbsRel_depth/data_list/
