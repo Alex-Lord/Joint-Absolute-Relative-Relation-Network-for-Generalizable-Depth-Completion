@@ -81,7 +81,7 @@ def parse_arguments():
         type=int,
         required=False,
         nargs="+",
-        default=60,
+        default=100,
         help="epochs numbers",
     )
     parser.add_argument(
@@ -138,9 +138,9 @@ def DDP_main(rank, world_size):
         else:
             args.save_dir += '_gd'
     args.save_dir += '_' + args.mode
-    args.save_dir += '_' + args.mode + '_2'
+    # args.save_dir += '_' + args.mode + '_2'
     args.save_dir = Path(args.save_dir)
-    args.model_dir = args.save_dir / 'models' / 'epoch_18.pth'
+    args.model_dir = args.save_dir / 'models' / 'epoch_60.pth'
 
     # DDP components
     DDPutils.setup(rank, world_size, args.port)
@@ -155,7 +155,7 @@ def DDP_main(rank, world_size):
         network,
         rank,
     )
-
+    args.resume_train = True
     # resume train
     if args.resume_train:
         if rank == 0:
@@ -192,7 +192,9 @@ def Non_DDP_main(rank=0, world_size=1):
             args.save_dir += '_gd'
     args.save_dir += '_' + args.mode
     args.save_dir = Path(args.save_dir)
-    args.model_dir = args.save_dir / 'models' / 'epoch_16.pth'
+    
+    args.resume_train = True
+    args.model_dir = args.save_dir / 'models' / 'epoch_60.pth'
 
     if rank == 0:
         print(f"Selected arguments: {args}")
@@ -205,6 +207,8 @@ def Non_DDP_main(rank=0, world_size=1):
         rank,
     )
 
+    
+    
     # resume train
     if args.resume_train:
         if rank == 0:
