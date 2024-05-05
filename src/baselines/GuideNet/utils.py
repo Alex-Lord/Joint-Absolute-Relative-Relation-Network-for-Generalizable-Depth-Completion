@@ -6,7 +6,7 @@
 # @Time:        2021/3/15 5:25 PM
 import sys
 import os
-sys.path.append('/data/8T/cby/Trans_G2/src/baselines/GuideNet')
+sys.path.append('/data1/Chenbingyuan/Trans_G2/src/baselines/GuideNet')
 import torch
 import random
 import numpy as np
@@ -77,7 +77,7 @@ def save_state(config, model):
 
 def resume_state(config, model):
     env_name = config.name + '_' + str(config.resume_seed)
-    cp_path = os.path.join('/data/8T/cby/Trans_G2/src/baselines/GuideNet/checkpoints/GNS_1600/result.pth')
+    cp_path = os.path.join('/data1/Chenbingyuan/Trans_G2/src/baselines/GuideNet/checkpoints/GNS_1600/result.pth')
     resume_model = torch.load(cp_path)['net']
     model.load_state_dict(resume_model, strict=True)
     return model

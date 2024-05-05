@@ -15,7 +15,7 @@ pro_dict = {'result': [0.001,0.01,0.1,0.2,0.5,0.7,1.0]}
 rgbd_dir_list=['nyu', 'redweb','ETH3D','Ibims', 'KITTI', 'VKITTI', 'Matterport3D', 'UnrealCV']
 # rgbd_dir_list=['ETH3D']
 for i,dir in enumerate(rgbd_dir_list):
-    rgbd_dir_list[i] = '/data/8T/cby/g2_dataset/'+dir+'/val'
+    rgbd_dir_list[i] = '/data1/Chenbingyuan/Trans_G2/g2_dataset/'+dir+'/val'
 # for file in rgbd_dir.rglob('*'):
 #     for file_2 in file.rglob('*'):
 #         if 'dis' in str(file_2) or 'npy' in str(file_2) or 'crop' in str(file_2): os.remove(file_2)

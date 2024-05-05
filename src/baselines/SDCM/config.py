@@ -2,7 +2,7 @@ import argparse
 import sys
 import os
 
-sys.path.extend(['/data/8T/cby/Trans_G2/src/baselines/SDCM/'])
+sys.path.extend(['/data1/Chenbingyuan/Trans_G2/src/baselines/SDCM/'])
 import torch
 import torch.nn.parallel
 import torch.optim

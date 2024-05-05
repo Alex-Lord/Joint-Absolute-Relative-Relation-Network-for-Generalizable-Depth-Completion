@@ -77,11 +77,11 @@ class DepthDatasetEvaluation(object):
             for dataset in dataset_list:
                 print(f'Now dealing with dataset: {dataset}')
                 for mode in mode_list:
-                    gt_path = os.path.join('/data/8T/cby/g2_dataset/', dataset, 'val')
+                    gt_path = os.path.join('/data1/Chenbingyuan/Trans_G2/g2_dataset/', dataset, 'val')
                     for pro in pro_dict[mode]:
-                        log_path = os.path.join('/data/8T/cby/g2_dataset/', dataset, mode, 'logs', f'logs_{method}_{pro}.txt')
+                        log_path = os.path.join('/data1/Chenbingyuan/Trans_G2/g2_dataset/', dataset, mode, 'logs', f'logs_{method}_{pro}.txt')
                         check_parent_path(log_path)
-                        depth_path = os.path.join('/data/8T/cby/g2_dataset/', dataset, mode, method + '_' + str(pro))
+                        depth_path = os.path.join('/data1/Chenbingyuan/Trans_G2/g2_dataset/', dataset, mode, method + '_' + str(pro))
                         self.evaluate_depth_dataset(depth_path, gt_path, pro, crop, log_path)
 def check_parent_path(file_path):
     parent_dir = os.path.dirname(file_path)
@@ -134,11 +134,11 @@ if __name__ == '__main__':
     
     datasets = ['nyu', 'redweb', 'ETH3D', 'Ibims', 'VKITTI', 'Matterport3D', 'UnrealCV', 'KITTI']
     for dataset in datasets:
-        log_dir = os.path.join('/data/8T/cby/g2_dataset/', dataset ,'result','logs')
+        log_dir = os.path.join('/data1/Chenbingyuan/Trans_G2/g2_dataset/', dataset ,'result','logs')
         check_path(log_dir)
         for file in os.listdir(log_dir):
             if file.startswith('logs_rz') and file.endswith('.txt'):
-                delete_file(os.path.join('/data/8T/cby/g2_dataset/', dataset,'result',file))
+                delete_file(os.path.join('/data1/Chenbingyuan/Trans_G2/g2_dataset/', dataset,'result',file))
                 print(file)
     evaluator = DepthDatasetEvaluation()
     evaluator.evaluate_all_datasets(dataset_list, mode_list, method_list, pro_dict, crop)

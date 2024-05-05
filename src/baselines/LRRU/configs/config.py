@@ -1,5 +1,5 @@
 import sys
-sys.path.extend(['/data/8T/cby/Trans_G2/src/baselines/LRRU'])
+sys.path.extend(['/data1/Chenbingyuan/Trans_G2/src/baselines/LRRU'])
 from yacs.config import CfgNode as CN
 
 cfg = CN()

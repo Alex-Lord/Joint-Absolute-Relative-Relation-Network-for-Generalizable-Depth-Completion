@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-sys.path.extend(['/data/8T/cby/Trans_G2/src'])
+sys.path.extend(['/data1/Chenbingyuan/Trans_G2/src'])
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
@@ -1521,7 +1521,7 @@ class GuideNet_retrain(Module):
         from baselines.GuideNet.utils import init_net
         import yaml
         from easydict import EasyDict as edict
-        with open('/data/8T/cby/Trans_G2/src/baselines/GuideNet/configs/GNS.yaml', 'r') as file:
+        with open('/data1/Chenbingyuan/Trans_G2/src/baselines/GuideNet/configs/GNS.yaml', 'r') as file:
             self.config_data = yaml.load(file, Loader=yaml.FullLoader)
         self.GuideNetconfig = edict(self.config_data)
         self.network = init_net(self.GuideNetconfig)
@@ -1539,7 +1539,7 @@ class TWISE_retrain(Module):
         super(TWISE_retrain, self).__init__()
         from baselines.TWISE.model import MultiRes_network_avgpool_diffspatialsizes
         from baselines.TWISE.utils import smooth2chandep
-        sys.path.append('/data/8T/cby/Trans_G2/src/baselines/TWISE')
+        sys.path.append('/data1/Chenbingyuan/Trans_G2/src/baselines/TWISE')
         import baselines.TWISE.metrics
         
         self.network = MultiRes_network_avgpool_diffspatialsizes()
@@ -1613,7 +1613,7 @@ class LRRU_retrain(Module):
         import argparse
         self.arg = argparse.ArgumentParser(description='depth completion')
         self.arg.add_argument('-p', '--project_name', type=str, default='inference')
-        self.arg.add_argument('-c', '--configuration', type=str, default='/data/8T/cby/Trans_G2/src/baselines/LRRU/configs/val_lrru_base_kitti.yml')
+        self.arg.add_argument('-c', '--configuration', type=str, default='/data1/Chenbingyuan/Trans_G2/src/baselines/LRRU/configs/val_lrru_base_kitti.yml')
         self.arg = self.arg.parse_args()
         self.args_LRRU = get_cfg(self.arg)
         self.network = LRRUModel(self.args_LRRU)

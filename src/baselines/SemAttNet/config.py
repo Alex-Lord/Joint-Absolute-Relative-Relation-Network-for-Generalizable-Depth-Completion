@@ -2,7 +2,7 @@ import argparse
 import sys
 import os
 
-sys.path.extend(['/data/8T/cby/Trans_G2/src/baselines/SemAttNet'])
+sys.path.extend(['/data1/Chenbingyuan/Trans_G2/src/baselines/SemAttNet'])
 
 
 from dataloaders.kitti_loader import input_options, KittiDepth

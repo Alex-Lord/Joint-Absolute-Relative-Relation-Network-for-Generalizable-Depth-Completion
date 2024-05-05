@@ -20,7 +20,7 @@ def process_file(file_path):
         return []
 
 # Set the directory path
-directory_path = '/data/8T/cby/g2_dataset/scale/train'
+directory_path = '/data1/Chenbingyuan/Trans_G2/g2_dataset/scale/train'
 pattern = f"{directory_path}/**/*groundtruth/image_02/**/*.png"
 file_paths = glob.glob(pattern, recursive=True)
 

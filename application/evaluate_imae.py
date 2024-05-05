@@ -106,12 +106,12 @@ class DepthDatasetEvaluation(object):
             for dataset in dataset_list:
                 print(f'Now dealing with dataset:{dataset}')
                 for mode in mode_list:
-                    gt_path = os.path.join('/data/8T/cby/g2_dataset/', dataset, 'val')  # nyu需要加入val后缀
-                    log_path = os.path.join('/data/8T/cby/g2_dataset/', dataset, mode, 'logs_ablation_1.txt')
+                    gt_path = os.path.join('/data1/Chenbingyuan/Trans_G2/g2_dataset/', dataset, 'val')  # nyu需要加入val后缀
+                    log_path = os.path.join('/data1/Chenbingyuan/Trans_G2/g2_dataset/', dataset, mode, 'logs_ablation_1.txt')
                     # 0-100
                     for pro in pro_dict[mode]:
                         print(method + '_' + dataset + '_' + str(pro))
-                        depth_path = os.path.join('/data/8T/cby/g2_dataset/', dataset, mode, method + '_' + str(pro))
+                        depth_path = os.path.join('/data1/Chenbingyuan/Trans_G2/g2_dataset/', dataset, mode, method + '_' + str(pro))
                         if pro == 0.0:
                             # print(f'depth_path={depth_path},gt_path={gt_path}')
                             starmse, ord_error = self.evaluate_depth_dataset(depth_path, gt_path, pro)
@@ -217,12 +217,12 @@ class DepthDatasetEvaluation(object):
             for dataset in dataset_list:
                 print(f'Now dealing with dataset:{dataset}')
                 for mode in mode_list:
-                    gt_path = os.path.join('/data/8T/cby/g2_dataset/', dataset, 'val')  # nyu需要加入val
-                    log_path = os.path.join('/data/8T/cby/g2_dataset/', dataset, mode, 'logs_absrel_1.txt')
+                    gt_path = os.path.join('/data1/Chenbingyuan/Trans_G2/g2_dataset/', dataset, 'val')  # nyu需要加入val
+                    log_path = os.path.join('/data1/Chenbingyuan/Trans_G2/g2_dataset/', dataset, mode, 'logs_absrel_1.txt')
 
                     # 0-100
                     for pro in pro_dict[mode]:
-                        depth_path = os.path.join('/data/8T/cby/g2_dataset/', dataset, mode, method + '_' + str(pro))
+                        depth_path = os.path.join('/data1/Chenbingyuan/Trans_G2/g2_dataset/', dataset, mode, method + '_' + str(pro))
                         # print(f'depth_path = {depth_path}')
                         if pro != 0.0:
                             starmse = self.inverse_evaluate_depth_dataset(depth_path, gt_path, pro)
@@ -246,8 +246,8 @@ class DepthDatasetEvaluation(object):
 
 def delete_txt_file(dataset_list):
     for data_set in dataset_list:
-        txt_file_1 = '/data/8T/cby/g2_dataset/'+data_set+'/result/'+ 'logs_ablation_1.txt'
-        txt_file_2 = '/data/8T/cby/g2_dataset/'+data_set+'/result/'+ 'logs_absrel_1.txt'
+        txt_file_1 = '/data1/Chenbingyuan/Trans_G2/g2_dataset/'+data_set+'/result/'+ 'logs_ablation_1.txt'
+        txt_file_2 = '/data1/Chenbingyuan/Trans_G2/g2_dataset/'+data_set+'/result/'+ 'logs_absrel_1.txt'
         # 检查文件是否存在
         # print(txt_file_1)
         if os.path.exists(txt_file_1):

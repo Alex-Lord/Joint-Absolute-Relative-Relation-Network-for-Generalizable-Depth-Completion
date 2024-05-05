@@ -1,6 +1,6 @@
 from abc import ABC
 import sys
-sys.path.extend(['/data/8T/cby/Trans_G2/src/baselines/LRRU'])
+sys.path.extend(['/data1/Chenbingyuan/Trans_G2/src/baselines/LRRU'])
 import torch
 import torch.nn as nn
 from scipy.stats import truncnorm

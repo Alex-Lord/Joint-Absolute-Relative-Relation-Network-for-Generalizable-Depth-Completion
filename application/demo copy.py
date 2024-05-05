@@ -47,7 +47,7 @@ def parse_arguments():
         "--rgbd_dir",
         action="store",
         type=lambda x: Path(x),
-        default=r'/data/8T/cby/g2_dataset/DIODE',
+        default=r'/data1/Chenbingyuan/Trans_G2/g2_dataset/DIODE',
         help="Path to test dataset",
         required=False
     )
@@ -269,7 +269,7 @@ def pred_and_save(network,rgb, point, hole_point, out_path, network_type, desc):
     depth_pil.save(out_path)
 
 def demo(args, network, pro, mode, network_type):
-    base_path = '/data/8T/cby/g2_dataset/'
+    base_path = '/data1/Chenbingyuan/Trans_G2/g2_dataset/'
     dataset_dict = {base_path+'nyu/val':'nyu', base_path+'DIODE/val':'DIODE', base_path+'HRWSI/val':'HRWSI',
                     base_path+'ETH3D/val':'ETH3D', base_path+'Ibims/val':'Ibims', base_path+'redweb/val':'redweb',
                     base_path+'KITTI/val':'KITTI', base_path+'VKITTI/val':'VKITTI', base_path+'Matterport3D/val':'Matterport3D',
@@ -374,53 +374,53 @@ def depth_inference():
                     args.ReZero = False
                 if method == 'rz_sb_mar_sfv2_DIODE_HRWSI':
                     network = sfv2_UNet(rezero=args.ReZero)  
-                    model_dir = '/data/8T/cby/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
 
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_no_f':
                     network = sfv2_UNet_no_f(rezero=args.ReZero)  
-                    model_dir = '/data/8T/cby/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_no_f/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_no_f/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_no_s':
                     network = sfv2_UNet_no_s(rezero=args.ReZero)  
-                    model_dir = '/data/8T/cby/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_no_s/models/epoch_58.pth'
+                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_no_s/models/epoch_58.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_no_p':
                     network = sfv2_UNet_no_p(rezero=args.ReZero)  
-                    model_dir = '/data/8T/cby/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_no_p/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_no_p/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_only_f':
                     network = sfv2_UNet_only_f(rezero=args.ReZero)  
-                    model_dir = '/data/8T/cby/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_only_f/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_only_f/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_only_s':
                     network = sfv2_UNet_only_s(rezero=args.ReZero)  
-                    model_dir = '/data/8T/cby/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_only_s/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_only_s/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_only_p':
                     network = sfv2_UNet_only_p(rezero=args.ReZero)  
-                    model_dir = '/data/8T/cby/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_only_p/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_only_p/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_CFormer_DIODE_HRWSI_2' or method == 'rz_sb_mar_CFormer_DIODE_HRWSI':
                     network = CFormer_DIODE_HRWSI()
-                    model_dir = '/data/8T/cby/result_g2/_rz_sb_mar_CFormer_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_CFormer_DIODE_HRWSI/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_NLSPN_DIODE_HRWSI_60' or method == 'rz_sb_mar_NLSPN_DIODE_HRWSI':
                     network = NLSPN_DIODE_HRWSI()
-                    model_dir = '/data/8T/cby/result_g2/_rz_sb_mar_NLSPN_DIODE_HRWSI_60/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_NLSPN_DIODE_HRWSI_60/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_g2_DIODE_HRWSI':
                     network = g2_UNet()
-                    model_dir = '/data/8T/cby/result_g2/_rz_sb_mar_g2_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_g2_DIODE_HRWSI/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 if method == 'rz_sb_mar_G2_Mono':
@@ -434,8 +434,8 @@ def depth_inference():
                     from src.baselines.CFormer.model.config import args as args_cformer
                     network = CompletionFormer(args_cformer)  
                     print(66666666)
-                    model_dir = '/data/8T/cby/Trans_G2/src/baselines/CFormer/model/KITTIDC_L1L2.pt'
-                    # model_dir = '/data/8T/cby/Trans_G2/src/baselines/CFormer/model/NYUv2.pt'
+                    model_dir = '/data1/Chenbingyuan/Trans_G2/src/baselines/CFormer/model/KITTIDC_L1L2.pt'
+                    # model_dir = '/data1/Chenbingyuan/Trans_G2/src/baselines/CFormer/model/NYUv2.pt'
                     network = network.cuda()
                     network.load_state_dict(torch.load(model_dir, map_location='cuda:0')['net'],strict=True)  # CFormer
                 elif method == 'rz_sb_mar_PEnet':
@@ -443,7 +443,7 @@ def depth_inference():
                     from src.baselines.PEnet.model import PENet_C2
                     from src.baselines.PEnet.config import args as args_penet
                     network = PENet_C2(args_penet) 
-                    model_dir = '/data/8T/cby/Trans_G2/src/baselines/PEnet/model/pe.pth.tar'
+                    model_dir = '/data1/Chenbingyuan/Trans_G2/src/baselines/PEnet/model/pe.pth.tar'
                     network = network.cuda()
                     network.load_state_dict(torch.load(model_dir, map_location='cuda:0')['model'],strict=False)  # PEnet
                 elif method == 'rz_sb_mar_ReDC':
@@ -451,7 +451,7 @@ def depth_inference():
                     from src.baselines.ReDC.redc import ReDC
                     from src.baselines.ReDC.config import args as args_ReDC
                     network = ReDC(args_ReDC) 
-                    model_dir = '/data/8T/cby/Trans_G2/src/baselines/ReDC/refinement_model_best.pth.tar'
+                    model_dir = '/data1/Chenbingyuan/Trans_G2/src/baselines/ReDC/refinement_model_best.pth.tar'
                     network = network.cuda()
                     network.load_state_dict(torch.load(model_dir, map_location='cuda:0')['model'],strict=False)  # PEnet
                     print(f'sys.path after PEnet = {sys.path}')
@@ -459,13 +459,13 @@ def depth_inference():
                     from src.baselines.SemAttNet.model import A_CSPN_plus_plus
                     from src.baselines.SemAttNet.config import args as  args_SemAttNet
                     network = A_CSPN_plus_plus(args_SemAttNet) 
-                    model_dir = '/data/8T/cby/Trans_G2/src/SemAttNet/model_best_backup.pth.tar'
+                    model_dir = '/data1/Chenbingyuan/Trans_G2/src/SemAttNet/model_best_backup.pth.tar'
                 elif method == 'rz_sb_mar_ACMNet':
 
                     from src.baselines.ACMNet.options.test_options import TestOptions
                     from src.baselines.ACMNet.models.test_model import TESTModel
                     network = TESTModel() 
-                    model_dir = '/data/8T/cby/Trans_G2/src/baselines/ACMNet/model_64.pth'
+                    model_dir = '/data1/Chenbingyuan/Trans_G2/src/baselines/ACMNet/model_64.pth'
                     opt = TestOptions().parse()
                     network.initialize(opt)
                     network.setup(opt)
@@ -473,11 +473,11 @@ def depth_inference():
                     # TWISE
                     from src.baselines.TWISE.model import MultiRes_network_avgpool_diffspatialsizes
                     from src.baselines.TWISE.utils import smooth2chandep
-                    sys.path.append('/data/8T/cby/Trans_G2/src/baselines/TWISE')
+                    sys.path.append('/data1/Chenbingyuan/Trans_G2/src/baselines/TWISE')
                     import src.baselines.TWISE.metrics
                     
                     network = MultiRes_network_avgpool_diffspatialsizes()
-                    model_dir = '/data/8T/cby/Trans_G2/src/baselines/TWISE/TWISE_gamma2.5/model_best.pth.tar'
+                    model_dir = '/data1/Chenbingyuan/Trans_G2/src/baselines/TWISE/TWISE_gamma2.5/model_best.pth.tar'
                     network = network.cuda()
                     network.load_state_dict(torch.load(model_dir, map_location='cuda:0')['model'])  # TWISE
 
@@ -486,7 +486,7 @@ def depth_inference():
                     from src.baselines.GuideNet.utils import init_net, resume_state
                     import yaml
                     from easydict import EasyDict as edict
-                    with open('/data/8T/cby/Trans_G2/src/baselines/GuideNet/configs/GNS.yaml', 'r') as file:
+                    with open('/data1/Chenbingyuan/Trans_G2/src/baselines/GuideNet/configs/GNS.yaml', 'r') as file:
                         config_data = yaml.load(file, Loader=yaml.FullLoader)
                     GuideNetconfig = edict(config_data)
                     key, params = GuideNetconfig.data_config.popitem()
@@ -499,8 +499,8 @@ def depth_inference():
                     from src.baselines.NLSPN.src.model.nlspnmodel import NLSPNModel
                     from src.baselines.NLSPN.src.config import args as args_NLSPN                    
                     network = NLSPNModel(args_NLSPN)
-                    model_dir = '/data/8T/cby/Trans_G2/src/baselines/NLSPN/NLSPN_KITTI_DC.pt'
-                    # # model_dir = '/data/8T/cby/Trans_G2/src/baselines/NLSPN/NLSPN_NYU.pt'
+                    model_dir = '/data1/Chenbingyuan/Trans_G2/src/baselines/NLSPN/NLSPN_KITTI_DC.pt'
+                    # # model_dir = '/data1/Chenbingyuan/Trans_G2/src/baselines/NLSPN/NLSPN_NYU.pt'
                     network = network.cuda()
                     network.load_state_dict(torch.load(model_dir, map_location='cuda:0')['net'],strict=True)  # NLSPN
                 elif method == 'rz_sb_mar_SDCM':
@@ -509,7 +509,7 @@ def depth_inference():
                     from src.baselines.SDCM.config import args as args_SDCM
 
                     network = DepthCompletionNet(args_SDCM)
-                    model_dir = '/data/8T/cby/Trans_G2/src/baselines/SDCM/model_best.pth.tar'
+                    model_dir = '/data1/Chenbingyuan/Trans_G2/src/baselines/SDCM/model_best.pth.tar'
                     network = network.cuda()
                     network.load_state_dict(torch.load(model_dir, map_location='cuda:0')['model'])  # SDCM
                 elif method == 'rz_sb_mar_MDAnet':
@@ -517,14 +517,14 @@ def depth_inference():
                     from src.baselines.MDANet.modules.net import network as MDAnet
                     network = MDAnet()
                     network = torch.nn.DataParallel(network)
-                    model_dir = '/data/8T/cby/Trans_G2/src/baselines/MDANet/results/quickstart/checkpoints/net-best.pth.tar'
+                    model_dir = '/data1/Chenbingyuan/Trans_G2/src/baselines/MDANet/results/quickstart/checkpoints/net-best.pth.tar'
                     network = network.cuda()
                     network.load_state_dict(torch.load(model_dir, map_location='cuda:0')['net'])  # MDAnet
                 elif method == 'rz_sb_mar_EMDC':
                     # EMDC
                     from src.baselines.EMDC.models.EMDC import emdc
                     network = emdc(depth_norm=False)
-                    model_dir = '/data/8T/cby/Trans_G2/src/baselines/EMDC/checkpoints/milestone.pth.tar'
+                    model_dir = '/data1/Chenbingyuan/Trans_G2/src/baselines/EMDC/checkpoints/milestone.pth.tar'
                     network = network.cuda()
                     network.load_state_dict(torch.load(model_dir, map_location='cuda:0')['state_dict'])  # EMDC
                 elif method == 'rz_sb_mar_LRRU':
@@ -534,7 +534,7 @@ def depth_inference():
 
                     arg = argparse.ArgumentParser(description='depth completion')
                     arg.add_argument('-p', '--project_name', type=str, default='inference')
-                    arg.add_argument('-c', '--configuration', type=str, default='/data/8T/cby/Trans_G2/src/baselines/LRRU/configs/val_lrru_base_kitti.yml')
+                    arg.add_argument('-c', '--configuration', type=str, default='/data1/Chenbingyuan/Trans_G2/src/baselines/LRRU/configs/val_lrru_base_kitti.yml')
                     arg = arg.parse_args()
                     from src.baselines.LRRU.configs import get as get_cfg
                     args_LRRU = get_cfg(arg)
@@ -555,7 +555,7 @@ def eva():
     commands = """
     source /home/PanLingzhi/anaconda3/etc/profile.d/conda.sh
     conda activate completionformer
-    python /data/8T/cby/Trans_G2/application/evaluate.py
+    python /data1/Chenbingyuan/Trans_G2/application/evaluate.py
     """
 
     # 启动一个 shell 进程，并捕获标准输出和标准错误
@@ -572,7 +572,7 @@ rgbd_dir = ['HRWSI','DIODE', 'nyu', 'redweb','ETH3D','Ibims', 'KITTI', 'VKITTI',
 rgbd_dir = ['ETH3D','Ibims', 'KITTI', 'VKITTI', 'Matterport3D', 'UnrealCV']
 dataset_list = copy.deepcopy(rgbd_dir)
 for i,dir in enumerate(rgbd_dir):
-    rgbd_dir[i] = '/data/8T/cby/g2_dataset/'+dir+'/val'
+    rgbd_dir[i] = '/data1/Chenbingyuan/Trans_G2/g2_dataset/'+dir+'/val'
 
 mode_list = [ 'result']
 
