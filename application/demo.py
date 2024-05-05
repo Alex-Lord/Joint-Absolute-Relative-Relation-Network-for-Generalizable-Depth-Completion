@@ -465,7 +465,7 @@ def depth_inference():
                 if method == 'rz_sb_mar_JARRN':
                     from sfv2_networks import JARRN
                     network = JARRN(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/Trans_G2/AbsRel_depth/train_logs_rz_sb_mar/models/epoch_100.pth'
+                    model_dir = '/data1/Chenbingyuan/Trans_G2/AbsRel_depth/train_logs_rz_sb_mar/models/epoch_94.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  JARRN
                 if method == 'rz_sb_mar_g2_released':
