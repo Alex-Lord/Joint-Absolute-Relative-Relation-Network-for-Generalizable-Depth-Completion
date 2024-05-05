@@ -2,7 +2,7 @@ import argparse
 import sys
 import os
 
-sys.path.extend(['/data1/Chenbingyuan/Trans_G2/src/baselines/ReDC'])
+sys.path.extend(['/data1/Chenbingyuan/Depth-Completion/src/baselines/ReDC'])
 
 
 from dataloaders_redc.kitti_loader_original import load_calib, input_options, KittiDepth

@@ -41,7 +41,7 @@ class TESTModel(BaseModel):
   
         self.netDC = networks.DCOMPNet(channels=opt.channels, knn=opt.knn, nsamples=opt.nsamples, scale=opt.scale)
         self.netDC = networks.init_net(self.netDC, init_type=opt.init_type, init_gain=opt.init_gain, gpu_ids=opt.gpu_ids, need_init=False)
-        self.model_dir = '/data/4TSSD/cby/Trans_G2/src/ACMNet/model_64.pth'
+        self.model_dir = '/data/4TSSD/cby/Depth-Completion/src/ACMNet/model_64.pth'
 
         cam2cam = read_calib_file('/data/4TSSD/cby/dataset/KITTI/calib_cam_to_cam.txt')
         P2_rect = cam2cam['P_rect_02'].reshape(3,4)

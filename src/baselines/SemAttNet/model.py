@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 import sys
-sys.path.append('/data1/Chenbingyuan/Trans_G2/src/baselines/SemAttNet')
+sys.path.append('/data1/Chenbingyuan/Depth-Completion/src/baselines/SemAttNet')
 from basic import *
 from attention import SAMMAFB
 

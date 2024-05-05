@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-sys.path.append('/data1/Chenbingyuan/Trans_G2/src/baselines/ACMNet')
+sys.path.append('/data1/Chenbingyuan/Depth-Completion/src/baselines/ACMNet')
 import util
 import torch
 import models

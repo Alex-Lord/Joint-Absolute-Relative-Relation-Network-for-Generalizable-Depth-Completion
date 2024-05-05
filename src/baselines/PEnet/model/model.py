@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 import sys
-sys.path.append('/data1/Chenbingyuan/Trans_G2/src/baselines/PEnet/model')
+sys.path.append('/data1/Chenbingyuan/Depth-Completion/src/baselines/PEnet/model')
 import CoordConv
 from dataloaders import transforms
 

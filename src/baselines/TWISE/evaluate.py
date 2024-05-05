@@ -232,7 +232,7 @@ def main():
             
     print("=> loading checkpoint '{}' ... ".format(complete_modelname),
             end='')
-    checkpoint = torch.load('/data/4TSSD/cby/Trans_G2/src/TWISE/TWISE_gamma2.5/model_best.pth.tar', map_location=device)
+    checkpoint = torch.load('/data/4TSSD/cby/Depth-Completion/src/TWISE/TWISE_gamma2.5/model_best.pth.tar', map_location=device)
     args = checkpoint['args']
     args.data_folder = args_new.data_folder
     args.save_imageflag = args_new.save_imageflag

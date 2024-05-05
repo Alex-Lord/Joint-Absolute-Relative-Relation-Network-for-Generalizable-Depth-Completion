@@ -2,7 +2,7 @@ import argparse
 import sys
 import os
 
-sys.path.extend(['/data1/Chenbingyuan/Trans_G2/src/baselines/SemAttNet'])
+sys.path.extend(['/data1/Chenbingyuan/Depth-Completion/src/baselines/SemAttNet'])
 
 
 from dataloaders.kitti_loader import input_options, KittiDepth
@@ -114,7 +114,7 @@ parser.add_argument('--rank-metric',
                     help='metrics for which best result is saved')
 
 #default=''
-parser.add_argument('-e', '--evaluate', default='/data/4TSSD/cby/Trans_G2/src/SemAttNet/model_best_backup.pth.tar', type=str, metavar='PATH')
+parser.add_argument('-e', '--evaluate', default='/data/4TSSD/cby/Depth-Completion/src/SemAttNet/model_best_backup.pth.tar', type=str, metavar='PATH')
 
 parser.add_argument('-f', '--freeze-backbone', action="store_true", default=False,
                     help='freeze parameters in backbone')

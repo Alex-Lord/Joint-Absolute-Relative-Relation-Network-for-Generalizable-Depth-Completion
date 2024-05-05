@@ -19,8 +19,8 @@ import torchvision
 
 
 model_path = {
-    'resnet18': '/data1/Chenbingyuan/Trans_G2/src/baselines/NLSPN/src/pretrained/resnet18.pth',
-    'resnet34': '/data1/Chenbingyuan/Trans_G2/src/baselines/NLSPN/src/pretrained/resnet34.pth'
+    'resnet18': '/data1/Chenbingyuan/Depth-Completion/src/baselines/NLSPN/src/pretrained/resnet18.pth',
+    'resnet34': '/data1/Chenbingyuan/Depth-Completion/src/baselines/NLSPN/src/pretrained/resnet34.pth'
 }
 
 

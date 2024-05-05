@@ -2,7 +2,7 @@ import argparse
 import sys
 import os
 
-sys.path.extend(['/data/4TSSD/cby/Trans_G2/src/PEnet/model'])
+sys.path.extend(['/data/4TSSD/cby/Depth-Completion/src/PEnet/model'])
 
 
 from dataloaders.kitti_loader import load_calib, input_options, KittiDepth
@@ -110,7 +110,7 @@ parser.add_argument('--rank-metric',
                     choices=[m for m in dir(Result()) if not m.startswith('_')],
                     help='metrics for which best result is saved')
 
-parser.add_argument('-e', '--evaluate', default='/data/4TSSD/cby/Trans_G2/src/PEnet/model/pe.pth.tar', type=str, metavar='PATH')
+parser.add_argument('-e', '--evaluate', default='/data/4TSSD/cby/Depth-Completion/src/PEnet/model/pe.pth.tar', type=str, metavar='PATH')
 parser.add_argument('-f', '--freeze-backbone', action="store_true", default=False,
                     help='freeze parameters in backbone')
 parser.add_argument('--test', action="store_true", default=True,

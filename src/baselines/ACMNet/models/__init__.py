@@ -1,7 +1,7 @@
 import importlib
 from models.base_model import BaseModel
 import sys
-sys.path.append('/data/4TSSD/cby/Trans_G2/src/ACMNet')
+sys.path.append('/data/4TSSD/cby/Depth-Completion/src/ACMNet')
 
 def find_model_using_name(model_name):
     # Given the option --model [modelname],

@@ -72,7 +72,7 @@ tmux send-keys -t cby 'cd /data/4TSSD/cby' C-m;
 tmux send-keys -t cby '' C-m;
 tmux send-keys -t cby 'conda activate plz_BY' C-m;
 tmux send-keys -t cby '' C-m;
-tmux send-keys -t cby 'cd /data/4TSSD/cby/Trans_G2/application' C-m;
+tmux send-keys -t cby 'cd /data/4TSSD/cby/Depth-Completion/application' C-m;
 tmux send-keys -t cby '' C-m;
 tmux send-keys -t cby 'python demo.py' C-m;
 

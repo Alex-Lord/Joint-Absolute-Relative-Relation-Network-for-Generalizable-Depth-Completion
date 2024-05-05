@@ -46,7 +46,7 @@ def parse_arguments():
         "--rgbd_dir",
         action="store",
         type=lambda x: Path(x),
-        default=r'/data1/Chenbingyuan/Trans_G2/g2_dataset/DIODE',
+        default=r'/data1/Chenbingyuan/Depth-Completion/g2_dataset/DIODE',
         help="Path to test dataset",
         required=False
     )
@@ -239,7 +239,7 @@ def pred_and_save(network,rgb, point, hole_point, out_path, network_type, desc):
     depth_pil.save(out_path)
 
 def demo(args, network, pro, mode, network_type):
-    base_path = '/data1/Chenbingyuan/Trans_G2/g2_dataset/'
+    base_path = '/data1/Chenbingyuan/Depth-Completion/g2_dataset/'
     dataset_dict = {base_path+'nyu/val':'nyu', base_path+'DIODE/val':'DIODE', base_path+'HRWSI/val':'HRWSI',
                     base_path+'ETH3D/val':'ETH3D', base_path+'Ibims/val':'Ibims', base_path+'redweb/val':'redweb',
                     base_path+'KITTI/val':'KITTI', base_path+'VKITTI/val':'VKITTI', base_path+'Matterport3D/val':'Matterport3D',
@@ -349,7 +349,7 @@ def depth_inference():
 
                     arg = argparse.ArgumentParser(description='depth completion')
                     arg.add_argument('-p', '--project_name', type=str, default='inference')
-                    arg.add_argument('-c', '--configuration', type=str, default='/data1/Chenbingyuan/Trans_G2/src/baselines/LRRU/configs/val_lrru_base_kitti.yml')
+                    arg.add_argument('-c', '--configuration', type=str, default='/data1/Chenbingyuan/Depth-Completion/src/baselines/LRRU/configs/val_lrru_base_kitti.yml')
                     arg = arg.parse_args()
                     from src.baselines.LRRU.configs import get as get_cfg
                     args_LRRU = get_cfg(arg)
@@ -369,7 +369,7 @@ def eva():
     commands = """
     source /home/PanLingzhi/anaconda3/etc/profile.d/conda.sh
     conda activate completionformer
-    python /data1/Chenbingyuan/Trans_G2/application/evaluate.py
+    python /data1/Chenbingyuan/Depth-Completion/application/evaluate.py
     """
 
     # 启动一个 shell 进程，并捕获标准输出和标准错误
@@ -386,7 +386,7 @@ rgbd_dir = ['HRWSI','DIODE', 'nyu', 'redweb','ETH3D','Ibims', 'KITTI', 'VKITTI',
 
 dataset_list = copy.deepcopy(rgbd_dir)
 for i,dir in enumerate(rgbd_dir):
-    rgbd_dir[i] = '/data1/Chenbingyuan/Trans_G2/g2_dataset/'+dir+'/val'
+    rgbd_dir[i] = '/data1/Chenbingyuan/Depth-Completion/g2_dataset/'+dir+'/val'
 
 mode_list = [ 'result']
 

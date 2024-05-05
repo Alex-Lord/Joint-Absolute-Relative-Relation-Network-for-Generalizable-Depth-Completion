@@ -25,7 +25,7 @@ def parse_arguments():
         "--rgbd_dir",
         action="store",
         type=lambda x: Path(x),
-        default=r'/data1/Chenbingyuan/Trans_G2/AbsRel_depth/RGBD_datasets/',
+        default=r'/data1/Chenbingyuan/Depth-Completion/AbsRel_depth/RGBD_datasets/',
         help="Path to RGB-depth folder",
         required=False
     )
@@ -107,7 +107,7 @@ def parse_arguments():
         "--model_dir",
         action="store",
         type=lambda x: Path(x),
-        default=r'/data1/Chenbingyuan/Trans_G2/AbsRel_depth/train_logs_rz_sb_mar/models/epoch_16.pth',
+        default=r'/data1/Chenbingyuan/Depth-Completion/AbsRel_depth/train_logs_rz_sb_mar/models/epoch_16.pth',
         help="Path to load models",
         required=False
     )

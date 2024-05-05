@@ -140,7 +140,7 @@ parser.add_argument('--opt_level',
                     choices=('O0', 'O1', 'O2', 'O3'))
 parser.add_argument('--pretrain',
                     type=str,
-                    default='/data/4TSSD/cby/Trans_G2/src/NLSPN/src/pretrained',
+                    default='/data/4TSSD/cby/Depth-Completion/src/NLSPN/src/pretrained',
                     help='ckpt path')
 parser.add_argument('--resume',
                     action='store_true',

@@ -2,7 +2,7 @@ import argparse
 import sys
 import os
 
-sys.path.extend(['/data1/Chenbingyuan/Trans_G2/src/baselines/SDCM/'])
+sys.path.extend(['/data1/Chenbingyuan/Depth-Completion/src/baselines/SDCM/'])
 import torch
 import torch.nn.parallel
 import torch.optim
@@ -110,7 +110,7 @@ parser.add_argument(
     default="dense",
     choices=["dense", "sparse", "photo", "sparse+photo", "dense+photo"],
     help='dense | sparse | photo | sparse+photo | dense+photo')
-parser.add_argument('-e', '--evaluate', default='/data/4TSSD/cby/Trans_G2/src/SDCM/model_best.pth.tar', type=str, metavar='PATH')
+parser.add_argument('-e', '--evaluate', default='/data/4TSSD/cby/Depth-Completion/src/SDCM/model_best.pth.tar', type=str, metavar='PATH')
 parser.add_argument('--cpu', action="store_true", help='run on cpu')
 
 args = parser.parse_args()

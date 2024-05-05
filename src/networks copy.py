@@ -1,5 +1,5 @@
 import sys
-sys.path.extend(['/data/4TSSD/cby/Trans_G2/src'])
+sys.path.extend(['/data/4TSSD/cby/Depth-Completion/src'])
 import torch
 import torch.nn.functional as F
 import torch.nn as nn

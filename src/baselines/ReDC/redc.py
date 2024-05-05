@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/data1/Chenbingyuan/Trans_G2/src/baselines/ReDC')
+sys.path.append('/data1/Chenbingyuan/Depth-Completion/src/baselines/ReDC')
 from basic import *
 import torch 
 from dataloaders_redc import transforms
