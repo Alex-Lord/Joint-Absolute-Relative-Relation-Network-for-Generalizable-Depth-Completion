@@ -268,7 +268,7 @@ if __name__ == '__main__':
     # mode_list = ['lines_result']
     # mode_list = ['result_very_sparse']
     # mode_list = ['result_very_sparse_same_seg', 'result_very_sparse_differ_seg']
-    dataset_list = ['nyu','redweb','ETH3D','Ibims', 'VKITTI', 'Matterport3D', 'UnrealCV', 'KITTI']
+    dataset_list = ['KITTI','nyu', 'redweb','ETH3D','Ibims', 'VKITTI']
     # dataset_list = ['nyu']
     # dataset_list = ['nyu','redweb','ETH3D','Ibims', 'VKITTI', 'Matterport3D', 'UnrealCV']
 
@@ -322,7 +322,7 @@ if __name__ == '__main__':
     #     'rz_sb_mar_SDCM','rz_sb_mar_TWISE']
     
     
-    method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI','rz_sb_mar_G2_Mono']
+    method_list = ['rz_sb_mar_G2_Mono','rz_sb_mar_JARRN']
     # pro_dict = {'lines_result': [0,1,4,16,64]}  # 线数
     # pro_dict = {'result': [0, 283/102400, 1129/102400, 3708/102400, 14691/102400]}
     # pro_dict = {'result_very_sparse':[0,1,2,3,10,20,50,100]}
