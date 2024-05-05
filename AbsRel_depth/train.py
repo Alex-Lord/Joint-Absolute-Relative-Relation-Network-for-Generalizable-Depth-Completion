@@ -1,13 +1,15 @@
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = '3,4,5,6'
 import argparse
 from pathlib import Path
 from src.src_main import AbsRel_depth
 from src.networks import UNet
 from src.utils import str2bool, DDPutils
-import os
+
 import torch
 from torch.backends import cudnn
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3,4,5,6,7'
+
 
 # turn fast mode on
 torch.backends.cudnn.enabled = True
@@ -155,7 +157,7 @@ def DDP_main(rank, world_size):
         network,
         rank,
     )
-    args.resume_train = True
+    # args.resume_train = True
     # resume train
     if args.resume_train:
         if rank == 0:
@@ -225,7 +227,7 @@ def Non_DDP_main(rank=0, world_size=1):
         learning_rate=0.0002,
         feedback_factor=1000,
         checkpoint_factor=2,
-        num_workers=3,
+        num_workers=4,
         checkpoint=checkpoint,
     )
 
