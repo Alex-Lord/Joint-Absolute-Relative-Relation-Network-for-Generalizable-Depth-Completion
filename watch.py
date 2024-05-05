@@ -9,6 +9,7 @@ def check_process(pid):
     """Check whether pid exists in the current process table."""
     return psutil.pid_exists(pid)
 
+
 def send_email(receiver_email,pid):
     """Send an email to the specified receiver."""
     sender_email = "13929107765@163.com"
