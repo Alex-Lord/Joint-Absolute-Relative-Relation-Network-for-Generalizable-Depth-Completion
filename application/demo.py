@@ -10,8 +10,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 import argparse
 from PIL import Image
 from pathlib import Path
-import setproctitle
-setproctitle.setproctitle("PyThon")
+
+os.environ["CUDA_VISIBLE_DEVICES"] = '7'
+
 
 
 from src import str2bool
@@ -78,8 +79,15 @@ def parse_arguments():
 
 
 
+
+
 def pred_and_save(network,rgb, point, hole_point, out_path, network_type, desc):
     KITTI_factor = 80.
+    if 'JARRN' in network_type or 'DIODE' in network_type:
+        # SfV2  G2_Mono
+        gen_depth,_,_,_ = network(rgb.cuda(), point.cuda(), hole_point.cuda())  
+        gen_depth = gen_depth.squeeze().to('cpu').numpy()
+        depth = np.clip(gen_depth * 255., 0, 255).astype(np.int8)
     if 'sfv2' in network_type or 'DIODE' in network_type:
         # SfV2  G2_Mono
         gen_depth,_,_,_ = network(rgb.cuda(), point.cuda(), hole_point.cuda())  
@@ -454,6 +462,12 @@ def depth_inference():
                 # load parameters
                 if 'rz' not in method:
                     args.ReZero = False
+                if method == 'rz_sb_mar_JARRN':
+                    from sfv2_networks import JARRN
+                    network = JARRN(rezero=args.ReZero)  
+                    model_dir = '/data1/Chenbingyuan/Trans_G2/AbsRel_depth/train_logs_rz_sb_mar/models/epoch_100.pth'
+                    network = network.cuda()
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  JARRN
                 if method == 'rz_sb_mar_g2_released':
                     from sfv2_networks import G2_Mono
                     network = G2_Mono(rezero=args.ReZero)  
@@ -783,6 +797,7 @@ def depth_inference():
                     network = network.cuda()
                     model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_LRRU_DIODE_HRWSI/models/epoch_60.pth'
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
+                # network = torch.compile(network)
                 for mode in mode_list:
                     # 0-100
                     for pro in pro_dict[mode]:
@@ -809,42 +824,19 @@ def eva():
         print("Errors:\n", stderr)
 
 if __name__ == "__main__":
-    os.environ["CUDA_VISIBLE_DEVICES"] = '2'
     # turn fast mode on
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True
-    # rgbd_dir = ['HRWSI','DIODE', 'nyu', 'redweb','ETH3D','Ibims', 'KITTI', 'VKITTI', 'Matterport3D', 'UnrealCV']
-    # rgbd_dir = ['nyu', 'redweb','ETH3D','Ibims', 'VKITTI', 'Matterport3D', 'UnrealCV']
+
     rgbd_dir = ['KITTI','nyu', 'redweb','ETH3D','Ibims', 'VKITTI']
-    # rgbd_dir = ['KITTI']
     dataset_list = copy.deepcopy(rgbd_dir)
     for i,dir in enumerate(rgbd_dir):
         rgbd_dir[i] = '/data1/Chenbingyuan/Trans_G2/g2_dataset/'+dir+'/val'
 
     mode_list = [ 'result']
 
-    # method_list = ['rz_sb_mar_NLSPN_DIODE_HRWSI_60' ,'rz_sb_mar_CFormer_KITTI', 'rz_sb_mar_EMDC', 
-    #                'rz_sb_mar_NLSPN_KITTI','rz_sb_mar_TWISE']
-    # method_list = ['rz_sb_mar_SDCM','rz_sb_mar_GuideNet','rz_sb_mar_ReDC','rz_sb_mar_PEnet']
-    # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI']
-    # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI','rz_sb_mar_SDCM','rz_sb_mar_PEnet','rz_sb_mar_ReDC','rz_sb_mar_NLSPN_DIODE_HRWSI_60' ,'rz_sb_mar_CFormer_KITTI', 'rz_sb_mar_EMDC', 
-    #                'rz_sb_mar_NLSPN_KITTI','rz_sb_mar_TWISE','rz_sb_mar_g2_DIODE_HRWSI','rz_sb_mar_sfv2_DIODE_HRWSI', 'rz_sb_mar_sfv2_DIODE_HRWSI_no_f',
-    #                'rz_sb_mar_sfv2_DIODE_HRWSI_no_p', 'rz_sb_mar_sfv2_DIODE_HRWSI_only_f', 'rz_sb_mar_sfv2_DIODE_HRWSI_only_p',
-    #                'rz_sb_mar_sfv2_DIODE_HRWSI_only_s'] # completionformer一个环境就可以解决
-    # ,rz_sb_mar_GuideNet  rz_sb_mar_MDAnet 需要切换环境为torch1.7
-    # LRRU 需要环境LRRU
-    # method_list = [ 'rz_sb_mar_MDAnet', 'rz_sb_mar_GuideNet'] # conda activate completionformer
-    # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_unscale']
-    # method_list = ['rz_sb_mar_GuideNet_DIODE_HRWSI', 'rz_sb_mar_MDAnet_DIODE_HRWSI']
-    # method_list = ['rz_sb_mar_LRRU_DIODE_HRWSI']
-    # method_list = ['rz_sb_mar_EMDC_DIODE_HRWSI','rz_sb_mar_TWISE_DIODE_HRWSI','rz_sb_mar_SDCM_DIODE_HRWSI', 'rz_sb_mar_PEnet_DIODE_HRWSI',
-    #                'rz_sb_mar_ReDC_DIODE_HRWSI','']
-    method_list = ['rz_sb_mar_G2_Mono', 'rz_sb_mar_JARRN']
-    # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI','rz_sb_mar_SDCM_DIODE_HRWSI','rz_sb_mar_PEnet_DIODE_HRWSI','rz_sb_mar_ReDC_DIODE_HRWSI','rz_sb_mar_NLSPN_DIODE_HRWSI_60' ,'rz_sb_mar_CFormer_KITTI', 'rz_sb_mar_EMDC', 
-    #                'rz_sb_mar_TWISE_DIODE_HRWSI','rz_sb_mar_EMDC_DIODE_HRWSI','rz_sb_mar_g2_DIODE_HRWSI','rz_sb_mar_CFormer_DIODE_HRWSI']
-    # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_f0505','rz_sb_mar_sfv2_DIODE_HRWSI','rz_sb_mar_sfv2_DIODE_HRWSI_f22','rz_sb_mar_sfv2_DIODE_HRWSI_s005','rz_sb_mar_sfv2_DIODE_HRWSI_s05']
-    
-    # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_f22']
+    method_list = ['rz_sb_mar_G2_Mono','rz_sb_mar_JARRN']
+
     epoch_list = [60]
     crop = False
 
