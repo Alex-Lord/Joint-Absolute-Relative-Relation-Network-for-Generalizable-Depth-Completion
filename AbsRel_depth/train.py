@@ -92,7 +92,7 @@ def parse_arguments():
         type=int,
         required=False,
         nargs="+",
-        default=16,
+        default=12,
         help="batch sizes",
     )
     parser.add_argument(
