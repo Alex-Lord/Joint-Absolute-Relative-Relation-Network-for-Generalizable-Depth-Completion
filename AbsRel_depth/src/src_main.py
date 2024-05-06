@@ -30,8 +30,8 @@ class AbsRel_depth:
     ) -> None:
         self.network = network.to(rank)
 
-        if rank == 0:
-            print(f"Network: {self.network}\n")
+        # if rank == 0:
+        #     print(f"Network: {self.network}\n")
 
     def optimize_net(
             self,

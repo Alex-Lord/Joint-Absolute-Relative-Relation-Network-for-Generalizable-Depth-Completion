@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '1,2,3,4,5,6,7'
+os.environ["CUDA_VISIBLE_DEVICES"] = '4,5,6,7'
 import argparse
 from pathlib import Path
 from src.src_main import AbsRel_depth
@@ -142,7 +142,9 @@ def DDP_main(rank, world_size):
     args.save_dir += '_' + args.mode
     # args.save_dir += '_' + args.mode + '_2'
     args.save_dir = Path(args.save_dir)
-    args.model_dir = args.save_dir / 'models' / 'epoch_60.pth'
+    
+    args.resume_train = True
+    args.model_dir = args.save_dir / 'models' / 'epoch_58.pth'
 
     # DDP components
     DDPutils.setup(rank, world_size, args.port)
@@ -181,56 +183,55 @@ def DDP_main(rank, world_size):
     DDPutils.cleanup()
 
 
-def Non_DDP_main(rank=0, world_size=1):
-    args = parse_arguments()
-    if args.rezero:
-        args.save_dir += '_rz'
-    else:
-        args.save_dir += '_bn'
-    if args.msgrad:
-        if args.sobel:
-            args.save_dir += '_sb'
-        else:
-            args.save_dir += '_gd'
-    args.save_dir += '_' + args.mode
-    args.save_dir += '_3'
-    args.save_dir = Path(args.save_dir)
+# def Non_DDP_main(rank=0, world_size=1):
+#     args = parse_arguments()
+#     if args.rezero:
+#         args.save_dir += '_rz'
+#     else:
+#         args.save_dir += '_bn'
+#     if args.msgrad:
+#         if args.sobel:
+#             args.save_dir += '_sb'
+#         else:
+#             args.save_dir += '_gd'
+#     args.save_dir += '_' + args.mode
+#     args.save_dir = Path(args.save_dir)
     
-    # args.resume_train = True
-    args.model_dir = args.save_dir / 'models' / 'epoch_60.pth'
+#     # args.resume_train = True
+#     args.model_dir = args.save_dir / 'models' / 'epoch_60.pth'
 
-    if rank == 0:
-        print(f"Selected arguments: {args}")
+#     if rank == 0:
+#         print(f"Selected arguments: {args}")
 
-    network = UNet(rezero=args.rezero)
-    print_model_parm_nums(network)
+#     network = UNet(rezero=args.rezero)
+#     print_model_parm_nums(network)
 
-    semigan = AbsRel_depth(
-        network,
-        rank,
-    )
+#     semigan = AbsRel_depth(
+#         network,
+#         rank,
+#     )
 
     
     
-    # resume train
-    if args.resume_train:
-        if rank == 0:
-            print('resume training...')
-            # load everything
-        map_location = {'cuda:%d' % 0: 'cuda:%d' % rank}
-        checkpoint = torch.load(args.model_dir, map_location=map_location)
-    else:
-        checkpoint = None
+#     # resume train
+#     if args.resume_train:
+#         if rank == 0:
+#             print('resume training...')
+#             # load everything
+#         map_location = {'cuda:%d' % 0: 'cuda:%d' % rank}
+#         checkpoint = torch.load(args.model_dir, map_location=map_location)
+#     else:
+#         checkpoint = None
 
-    semigan.train(
-        args=args,
-        rank=rank,
-        learning_rate=0.0002,
-        feedback_factor=1000,
-        checkpoint_factor=2,
-        num_workers=4,
-        checkpoint=checkpoint,
-    )
+#     semigan.train(
+#         args=args,
+#         rank=rank,
+#         learning_rate=0.0002,
+#         feedback_factor=1000,
+#         checkpoint_factor=2,
+#         num_workers=4,
+#         checkpoint=checkpoint,
+#     )
 
 
 
