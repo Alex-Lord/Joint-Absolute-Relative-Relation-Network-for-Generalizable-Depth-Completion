@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '3,4,5,6'
+os.environ["CUDA_VISIBLE_DEVICES"] = '1,2,3,4,5,6,7'
 import argparse
 from pathlib import Path
 from src.src_main import AbsRel_depth
@@ -193,9 +193,10 @@ def Non_DDP_main(rank=0, world_size=1):
         else:
             args.save_dir += '_gd'
     args.save_dir += '_' + args.mode
+    args.save_dir += '_3'
     args.save_dir = Path(args.save_dir)
     
-    args.resume_train = True
+    # args.resume_train = True
     args.model_dir = args.save_dir / 'models' / 'epoch_60.pth'
 
     if rank == 0:

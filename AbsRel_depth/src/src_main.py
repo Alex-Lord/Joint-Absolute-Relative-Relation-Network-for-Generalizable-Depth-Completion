@@ -167,7 +167,7 @@ class AbsRel_depth:
             del checkpoint
 
         # learning rate scheduler
-        scheduler = MultiStepLR(optimizer, milestones=[20, 40], gamma=0.5, last_epoch=(start_epoch - 1))
+        scheduler = MultiStepLR(optimizer, milestones=[20, 40, 60, 80, 90], gamma=0.5, last_epoch=(start_epoch - 1))
         
         # self.network = torch.compile(self.network)
         

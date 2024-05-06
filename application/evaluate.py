@@ -336,7 +336,7 @@ if __name__ == '__main__':
     # from demo import pro_dict, crop
     # from demo import dataset_list as dataset_list
     crop = False
-    # delete_txt_file(dataset_list)
+    delete_txt_file(dataset_list)
     if crop:
         print('进行256*256尺寸的评估')
     else:
