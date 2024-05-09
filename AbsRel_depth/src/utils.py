@@ -8,6 +8,15 @@ import torch.multiprocessing as mp
 from torch import Tensor
 
 
+def on_load_checkpoint(checkpoint):
+    keys_list = list(checkpoint['network_state_dict'].keys())
+    for key in keys_list:
+        if 'orig_mod.' in key:
+            deal_key = key.replace('_orig_mod.', '')
+            checkpoint['network_state_dict'][deal_key] = checkpoint['network_state_dict'][key]
+            del checkpoint['network_state_dict'][key]
+    return checkpoint
+
 class StandardizeData(torch.nn.Module):
     def __init__(self, mode='mean_robust'):
         super(StandardizeData, self).__init__()

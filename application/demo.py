@@ -31,7 +31,7 @@ def on_load_checkpoint(checkpoint):
     keys_list = list(checkpoint['network_state_dict'].keys())
     for key in keys_list:
         if 'orig_mod.' in key:
-            deal_key = key.replace('module.', '')
+            deal_key = key.replace('_orig_mod.', '')
             checkpoint['network_state_dict'][deal_key] = checkpoint['network_state_dict'][key]
             del checkpoint['network_state_dict'][key]
     return checkpoint
@@ -465,9 +465,10 @@ def depth_inference():
                 if method == 'rz_sb_mar_JARRN':
                     from sfv2_networks import JARRN
                     network = JARRN(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/Depth-Completion/AbsRel_depth/train_logs_rz_sb_mar/models/epoch_94.pth'
+                    network = torch.compile(network)
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/AbsRel_depth/train_logs_rz_sb_mar_mar_3/models/epoch_100.pth'
                     network = network.cuda()
-                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  JARRN
+                    network.load_state_dict(torch.load(model_dir, map_location='cuda:0')['network_state_dict'],strict=True)  #  JARRN
                 if method == 'rz_sb_mar_g2_released':
                     from sfv2_networks import G2_Mono
                     network = G2_Mono(rezero=args.ReZero)  
@@ -835,7 +836,7 @@ if __name__ == "__main__":
 
     mode_list = [ 'result']
 
-    method_list = ['rz_sb_mar_G2_Mono','rz_sb_mar_JARRN']
+    method_list = ['rz_sb_mar_JARRN']
 
     epoch_list = [60]
     crop = False

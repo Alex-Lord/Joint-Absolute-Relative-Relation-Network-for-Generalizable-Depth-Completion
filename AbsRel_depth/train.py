@@ -8,8 +8,8 @@ from src.utils import str2bool, DDPutils
 
 import torch
 from torch.backends import cudnn
-
-
+import random
+import numpy as np
 
 # turn fast mode on
 torch.backends.cudnn.enabled = True
@@ -130,6 +130,8 @@ def print_model_parm_nums(model):
 
 def DDP_main(rank, world_size):
     args = parse_arguments()
+    seed = generate_random_seed(3407+rank)
+    set_random_seed(seed)
     if args.rezero:
         args.save_dir += '_rz'
     else:
@@ -140,11 +142,9 @@ def DDP_main(rank, world_size):
         else:
             args.save_dir += '_gd'
     args.save_dir += '_' + args.mode
-    # args.save_dir += '_' + args.mode + '_2'
+    args.save_dir += '_' + args.mode + '_3'
     args.save_dir = Path(args.save_dir)
     
-    args.resume_train = True
-    args.model_dir = args.save_dir / 'models' / 'epoch_58.pth'
 
     # DDP components
     DDPutils.setup(rank, world_size, args.port)
@@ -159,7 +159,9 @@ def DDP_main(rank, world_size):
         network,
         rank,
     )
-    # args.resume_train = True
+    
+    args.resume_train = True
+    args.model_dir = args.save_dir / 'models' / 'epoch_60.pth'
     # resume train
     if args.resume_train:
         if rank == 0:
@@ -182,6 +184,18 @@ def DDP_main(rank, world_size):
 
     DDPutils.cleanup()
 
+
+def generate_random_seed(seed):
+    if (seed is not None) and (seed != -1):
+        return seed
+    seed = np.random.randint(2 ** 31)
+    return seed
+
+def set_random_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 # def Non_DDP_main(rank=0, world_size=1):
 #     args = parse_arguments()

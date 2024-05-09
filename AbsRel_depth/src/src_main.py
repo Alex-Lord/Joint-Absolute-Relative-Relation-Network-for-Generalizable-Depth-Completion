@@ -13,7 +13,7 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel as DDP
 from typing import Dict, Tuple
 
-from .utils import save_img, DataGenerator, min_max_norm, StandardizeData
+from .utils import save_img, DataGenerator, min_max_norm, StandardizeData, on_load_checkpoint
 from .data_tools import get_dataloader
 from .losses import (
     WeightedDataLoss,
@@ -84,12 +84,12 @@ class AbsRel_depth:
             summary: SummaryWriter,
             global_step: int,
     ) -> None:
-        # print(
-        #     'Elapsed:[%s]|batch:[%d/%d]|abs:%.4f|rel:%.4f|grad:%.4f'
-        #     % (
-        #         elapsed, i, iteration_num, float(loss_adepth), float(loss_rdepth), float(loss_rgrad)
-        #     )
-        # )
+        print(
+            'Elapsed:[%s]|batch:[%d/%d]|abs:%.4f|rel:%.4f|grad:%.4f'
+            % (
+                elapsed, i, iteration_num, float(loss_adepth), float(loss_rdepth), float(loss_rgrad)
+            )
+        )
 
         # log loss
         summary.add_scalar(
@@ -156,8 +156,9 @@ class AbsRel_depth:
 
         start_epoch = 0
         # resume train
+        
         if checkpoint is not None:
-            start_epoch = checkpoint['epoch']
+            checkpoint = on_load_checkpoint(checkpoint)
             self.network.load_state_dict(checkpoint['network_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             scaler.load_state_dict(checkpoint['scaler_state_dict'])
@@ -208,6 +209,7 @@ class AbsRel_depth:
                 start = timeit.default_timer()  # record time at the start of epoch
                 print(f"\nEpoch: [{epoch}/{args.epochs}]")
             iterator = tqdm(enumerate(zip(rgbgph_data, hole_data), start=1), desc='Batch', total=iteration_num) if rank == 0 else enumerate(zip(rgbgph_data, hole_data), start=1)
+            
             for (i, all_data) in iterator:
 
                 # warm up in the 1st epoch
@@ -262,4 +264,4 @@ class AbsRel_depth:
                     }, save_file)
 
         if rank == 0:
-            print("Training completed ...")
+            print(f"Training completed ... Model saved in {args.save_dir}")
