@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '4,5,6,7'
+os.environ["CUDA_VISIBLE_DEVICES"] = '5,6,7'
 import argparse
 from pathlib import Path
 from src.src_main import AbsRel_depth
@@ -142,9 +142,9 @@ def DDP_main(rank, world_size):
         else:
             args.save_dir += '_gd'
     args.save_dir += '_' + args.mode
-    args.save_dir += '_' + args.mode + '_3'
+    args.save_dir += '_' + args.mode + '_G2Mono'
+    args.save_dir = os.path.join('/data1/Chenbingyuan/Depth-Completion/AbsRel_depth', args.save_dir)
     args.save_dir = Path(args.save_dir)
-    
 
     # DDP components
     DDPutils.setup(rank, world_size, args.port)
@@ -160,7 +160,7 @@ def DDP_main(rank, world_size):
         rank,
     )
     
-    args.resume_train = True
+    args.resume_train = False
     args.model_dir = args.save_dir / 'models' / 'epoch_60.pth'
     # resume train
     if args.resume_train:

@@ -170,7 +170,7 @@ class AbsRel_depth:
         # learning rate scheduler
         scheduler = MultiStepLR(optimizer, milestones=[20, 40, 60, 80, 90], gamma=0.5, last_epoch=(start_epoch - 1))
         
-        # self.network = torch.compile(self.network)
+        self.network = torch.compile(self.network)
         
         # Use DistributedDataParallel:
         self.network = DDP(self.network, device_ids=[rank], static_graph=True)
