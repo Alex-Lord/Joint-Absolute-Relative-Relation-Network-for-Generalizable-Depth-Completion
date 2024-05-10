@@ -472,7 +472,7 @@ def depth_inference():
                 if method == 'rz_sb_mar_g2_released':
                     from sfv2_networks import G2_Mono
                     network = G2_Mono(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/Depth-Completion/src/baselines/G2_Mono/epoch_100.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/AbsRel_depth/train_logs_rz_sb_mar_mar_G2Mono/models/epoch_100.pth'
                     network = network.cuda()
                     network.load_state_dict(torch.load(model_dir)['network'])
                 if method == 'rz_sb_mar_sfv2_KITTI_2':
@@ -836,7 +836,7 @@ if __name__ == "__main__":
 
     mode_list = [ 'result']
 
-    method_list = ['rz_sb_mar_JARRN']
+    method_list = ['rz_sb_mar_G2_Mono']
 
     epoch_list = [60]
     crop = False

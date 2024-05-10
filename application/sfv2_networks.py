@@ -84,24 +84,24 @@ class JARRN(Module):
         depth = (depth*s+f)*prob + depth * (1-prob)
         return depth,s,f,prob
 
-
-
-
 class G2_Mono(Module):
+    # 在全部数据集上retrain过
     def __init__(self, layer_num: int = 7, rezero: bool = True):
         super(G2_Mono, self).__init__()
-        chan = [512, 512, 512, 512, 256, 128, 64]
-        layer = FirstModule(chan[1], chan[0], rezero)
+        
+        rgb_x_chan = chan
+        layer = FirstModule(rgb_x_chan[1], rgb_x_chan[0], rezero)
         for i in range(2, layer_num):
-            layer = UNetModule(layer, chan[i], chan[i - 1], rezero)
+            layer = UNetModule(layer, rgb_x_chan[i], rgb_x_chan[i - 1], rezero)
 
-        self.block = Sequential(
-            Conv2d(5, chan[i], 3, 1, 1),
-            StackedBottleNeck(chan[i], chan[i], rezero),
+        self.rgb_x_block = Sequential(
+            Conv2d(5, rgb_x_chan[i], 3, 1, 1),
+            StackedBottleNeck(rgb_x_chan[i], rgb_x_chan[i], rezero),
             layer,
-            StackedBottleNeck(2 * chan[i], chan[i], rezero),
-            Conv2d(chan[i], 1, 3, 1, 1),
+            StackedBottleNeck(2 * rgb_x_chan[i], rgb_x_chan[i], rezero),
+            Conv2d(rgb_x_chan[i], 1, 3, 1, 1),
         )
+        
 
         # initializing
         for m in self.modules():
@@ -110,13 +110,48 @@ class G2_Mono(Module):
                 init.zeros_(m.bias)
 
     def forward(
-            self,
-            rgb: Tensor,
-            point: Tensor,
-            hole_point: Tensor,
+        self,
+        rgb: Tensor,
+        point: Tensor,
+        hole_point: Tensor, 
     ) -> Tensor:
+
         x1 = torch.cat((rgb, point, hole_point), dim=1)
-        depth = self.block(x1)
+        depth = self.rgb_x_block(x1)
+
+        return depth
+
+
+# class G2_Mono(Module):
+#     def __init__(self, layer_num: int = 7, rezero: bool = True):
+#         super(G2_Mono, self).__init__()
+#         chan = [512, 512, 512, 512, 256, 128, 64]
+#         layer = FirstModule(chan[1], chan[0], rezero)
+#         for i in range(2, layer_num):
+#             layer = UNetModule(layer, chan[i], chan[i - 1], rezero)
+
+#         self.block = Sequential(
+#             Conv2d(5, chan[i], 3, 1, 1),
+#             StackedBottleNeck(chan[i], chan[i], rezero),
+#             layer,
+#             StackedBottleNeck(2 * chan[i], chan[i], rezero),
+#             Conv2d(chan[i], 1, 3, 1, 1),
+#         )
+
+#         # initializing
+#         for m in self.modules():
+#             if isinstance(m, Conv2d):
+#                 init.kaiming_normal_(m.weight, a=0.2)
+#                 init.zeros_(m.bias)
+
+#     def forward(
+#             self,
+#             rgb: Tensor,
+#             point: Tensor,
+#             hole_point: Tensor,
+#     ) -> Tensor:
+#         x1 = torch.cat((rgb, point, hole_point), dim=1)
+#         depth = self.block(x1)
         return depth
 
 
