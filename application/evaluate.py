@@ -47,6 +47,7 @@ class DepthDatasetEvaluation(object):
         ord_error = 0.0
         rmse = 0.0
         irmse = 0.0
+        imae = 0.0
         mae = 0.0
         rel = 0.0
         count = 0.0
@@ -83,11 +84,12 @@ class DepthDatasetEvaluation(object):
             else:
                 rmse += DepthEvaluation.rmse(depth, gt)
                 rel += DepthEvaluation.absRel(depth, gt)
-                # irmse += DepthEvaluation.irmse(depth, gt)
-                # mae += DepthEvaluation.mae(depth, gt)
+                irmse += DepthEvaluation.irmse(depth, gt)
+                imae += DepthEvaluation.imae(depth, gt)
+                mae += DepthEvaluation.mae(depth, gt)
                 # rel = 0
-                irmse = 0
-                mae = 0
+                # irmse = 0
+                # mae = 0
 
         if pro == 0.0:
             starmse /= count
@@ -98,8 +100,9 @@ class DepthDatasetEvaluation(object):
             rmse /= count
             rel /= count
             irmse /= count
+            imae /= count
             mae /= count
-            return rmse, rel, irmse, mae
+            return rmse, rel, irmse, imae, mae
 
     def evaluate_all_datasets(self):
         for method in method_list:
@@ -107,7 +110,7 @@ class DepthDatasetEvaluation(object):
                 print(f'Now dealing with dataset:{dataset}')
                 for mode in mode_list:
                     gt_path = os.path.join('/data1/Chenbingyuan/Depth-Completion/g2_dataset/', dataset, 'val')  # nyu需要加入val后缀
-                    log_path = os.path.join('/data1/Chenbingyuan/Depth-Completion/g2_dataset/', dataset, mode, 'logs_ablation_G2_sfv2.txt')
+                    log_path = os.path.join('/data1/Chenbingyuan/Depth-Completion/g2_dataset/', dataset, mode, 'logs_ablation_all.txt')
                     # 0-100
                     for pro in pro_dict[mode]:
                         print(method + '_' + dataset + '_' + str(pro))
@@ -122,13 +125,14 @@ class DepthDatasetEvaluation(object):
                                     ', SRMSE= {:.4f}'.format(starmse) + '\n'
                                 )
                         else:
-                            rmse, rel, irmse, mae = self.evaluate_depth_dataset(depth_path, gt_path, pro)
+                            rmse, rel, irmse, imae, mae = self.evaluate_depth_dataset(depth_path, gt_path, pro)
                             with open(log_path, 'a') as log_file:
                                 log_file.write(
                                     method + '_' + str(pro) +
                                     ': AbsRel= ' + str(rel) +
                                     ', RMSE= {:.4f}'.format(rmse) + 
                                     ', iRMSE= {:.6f}'.format(irmse) + 
+                                    ', iMAE= {:.6f}'.format(imae) + 
                                     ', MAE= {:.4f}'.format(mae) +
                                     '\n'
                                 )
@@ -149,7 +153,7 @@ class DepthDatasetEvaluation(object):
             for dataset in dataset_list:
                 for mode in value['mode_list']:
                     gt_path = os.path.join('../Test_datasets', dataset, 'gt')
-                    log_path = os.path.join('../Test_datasets', dataset, mode, 'logs_baseline.txt')
+                    log_path = os.path.join('../Test_datasets', dataset, mode, 'logs_baseline_all.txt')
                     for pro in value['pro_list']:
                         print(method + '_' + dataset + '_' + str(pro))
                         depth_path = os.path.join('../Test_datasets', dataset, mode, method + '_' + str(pro))
@@ -162,13 +166,14 @@ class DepthDatasetEvaluation(object):
                                     ', SRMSE= {:.4f}'.format(starmse) + '\n'
                                 )
                         else:
-                            rmse, rel, irmse, mae = self.evaluate_depth_dataset(depth_path, gt_path, pro)
+                            rmse, rel, irmse, imae, mae = self.evaluate_depth_dataset(depth_path, gt_path, pro)
                             with open(log_path, 'a') as log_file:
                                 log_file.write(
                                     method + '_' + str(pro) +
                                     ': AbsRel= ' + str(rel) +
                                     ', RMSE= ' + str(rmse) + 
                                     ', iRMSE= ' + str(irmse) + 
+                                    ', iMAE= {:.6f}'.format(imae) + 
                                     ', MAE= ' + str(mae) + 
                                     '\n'
                                 )
@@ -179,6 +184,7 @@ class DepthDatasetEvaluation(object):
         starmse = 0.0
         rmse = 0.0
         irmse = 0.0
+        imae = 0.0
         mae = 0.0
         count = 0.0
         png_files = glob.glob(depth_path + '/**/*.png',recursive=True)
@@ -198,8 +204,9 @@ class DepthDatasetEvaluation(object):
                 starmse += DepthEvaluation.starmse(depth, gt)
             else:
                 rmse += DepthEvaluation.rmse(depth, gt)
-                # irmse += DepthEvaluation.irmse(depth, gt)
-                # mae += DepthEvaluation.mae(depth, gt)
+                irmse += DepthEvaluation.irmse(depth, gt)
+                imae += DepthEvaluation.imae(depth, gt)
+                mae += DepthEvaluation.mae(depth, gt)
                 # rmse = 0
         
         if pro != 0.0:
@@ -208,8 +215,9 @@ class DepthDatasetEvaluation(object):
         else:
             rmse /= count
             irmse /= count
+            imae /= count
             mae /= count
-            return rmse, irmse, mae
+            return rmse, irmse, imae, mae
 
     def inverse_evaluate_all_datasets(self):
 
@@ -218,7 +226,7 @@ class DepthDatasetEvaluation(object):
                 print(f'Now dealing with dataset:{dataset}')
                 for mode in mode_list:
                     gt_path = os.path.join('/data1/Chenbingyuan/Depth-Completion/g2_dataset/', dataset, 'val')  # nyu需要加入val
-                    log_path = os.path.join('/data1/Chenbingyuan/Depth-Completion/g2_dataset/', dataset, mode, 'logs_absrel_G2_sfv2.txt')
+                    log_path = os.path.join('/data1/Chenbingyuan/Depth-Completion/g2_dataset/', dataset, mode, 'logs_absrel_all.txt')
 
                     # 0-100
                     for pro in pro_dict[mode]:
@@ -232,12 +240,13 @@ class DepthDatasetEvaluation(object):
                                     ' : SRMSE= ' + str(starmse) + '\n'
                                 )
                         else:
-                            rmse, irmse, mae = self.inverse_evaluate_depth_dataset(depth_path, gt_path, pro)
+                            rmse, irmse, imae,mae = self.inverse_evaluate_depth_dataset(depth_path, gt_path, pro)
                             with open(log_path, 'a') as log_file:
                                 log_file.write(
                                     method + '_' + str(pro) +
                                     ': RMSE= {:.4f}'.format(rmse) + 
                                     ': iRMSE= {:.6f}'.format(irmse) + 
+                                    ': iMAE= {:.6f}'.format(imae) + 
                                     ': MAE= {:.4f}'.format(mae) + 
                                     '\n'
                                     
@@ -246,8 +255,8 @@ class DepthDatasetEvaluation(object):
 
 def delete_txt_file(dataset_list):
     for data_set in dataset_list:
-        txt_file_1 = '/data1/Chenbingyuan/Depth-Completion/g2_dataset/'+data_set+'/result/'+ 'logs_ablation_G2_sfv2.txt'
-        txt_file_2 = '/data1/Chenbingyuan/Depth-Completion/g2_dataset/'+data_set+'/result/'+ 'logs_absrel_G2_sfv2.txt'
+        txt_file_1 = '/data1/Chenbingyuan/Depth-Completion/g2_dataset/'+data_set+'/result/'+ 'logs_ablation_all.txt'
+        txt_file_2 = '/data1/Chenbingyuan/Depth-Completion/g2_dataset/'+data_set+'/result/'+ 'logs_absrel_all.txt'
         # 检查文件是否存在
         # print(txt_file_1)
         if os.path.exists(txt_file_1):
@@ -268,9 +277,10 @@ if __name__ == '__main__':
     # mode_list = ['lines_result']
     # mode_list = ['result_very_sparse']
     # mode_list = ['result_very_sparse_same_seg', 'result_very_sparse_differ_seg']
-    dataset_list = ['KITTI','nyu', 'redweb','ETH3D','Ibims', 'VKITTI']
-    # dataset_list = ['nyu']
-    # dataset_list = ['nyu','redweb','ETH3D','Ibims', 'VKITTI', 'Matterport3D', 'UnrealCV']
+    # dataset_list = ['KITTI','nyu', 'redweb','ETH3D','Ibims', 'VKITTI']
+    # dataset_list = ['Matterport3D', 'UnrealCV']
+    # dataset_list = ['KITTI','nyu','redweb','ETH3D','Ibims', 'VKITTI', 'Matterport3D', 'UnrealCV']
+    dataset_list = ['nyu','redweb','ETH3D','Ibims', 'VKITTI', 'Matterport3D', 'UnrealCV']
 
     # method_list = ['rz_sb_mar_CFormer_DIODE_HRWSI','rz_sb_mar_CFormer_KITTI','rz_sb_mar_EMDC',
     #                'rz_sb_mar_LRRU','rz_sb_mar_NLSPN_DIODE_HRWSI_60','rz_sb_mar_SDCM',
@@ -311,9 +321,32 @@ if __name__ == '__main__':
     #     'rz_sb_mar_CFormer_DIODE_HRWSI',
     #     'rz_sb_mar_NLSPN_DIODE_HRWSI_60',
     #     'rz_sb_mar_g2_DIODE_HRWSI',
-    #     'rz_sb_mar_sfv2_DIODE_HRWSI',   
+    #     'rz_sb_mar_sfv2_DIODE_HRWSI', '  
     # ]
     
+    # 全部
+    method_list = [
+        'rz_sb_mar_GuideNet_DIODE_HRWSI', 
+        'rz_sb_mar_MDAnet_DIODE_HRWSI', 
+        'rz_sb_mar_LRRU_DIODE_HRWSI', 
+        'rz_sb_mar_EMDC_DIODE_HRWSI', 
+        'rz_sb_mar_TWISE_DIODE_HRWSI', 
+        'rz_sb_mar_SDCM_DIODE_HRWSI', 
+        'rz_sb_mar_PEnet_DIODE_HRWSI', 
+        'rz_sb_mar_ReDC_DIODE_HRWSI',
+        'rz_sb_mar_CFormer_DIODE_HRWSI',
+        'rz_sb_mar_NLSPN_DIODE_HRWSI_60',
+        'rz_sb_mar_g2_DIODE_HRWSI',
+        'rz_sb_mar_sfv2_DIODE_HRWSI',
+        'rz_sb_mar_CFormer_DIODE_HRWSI','rz_sb_mar_CFormer_KITTI','rz_sb_mar_EMDC',
+        'rz_sb_mar_LRRU','rz_sb_mar_NLSPN_DIODE_HRWSI_60','rz_sb_mar_SDCM',
+        'rz_sb_mar_GuideNet','rz_sb_mar_ReDC', 'rz_sb_mar_MDAnet',
+        'rz_sb_mar_NLSPN_KITTI','rz_sb_mar_PEnet','rz_sb_mar_G2_Mono', 'rz_sb_mar_JARRN_full_05line_05point', 'rz_sb_mar_JARRN_mixed_05point_05line',
+        'rz_sb_mar_SDCM','rz_sb_mar_TWISE','rz_sb_mar_g2_DIODE_HRWSI','rz_sb_mar_sfv2_DIODE_HRWSI',
+        'rz_sb_mar_sfv2_DIODE_HRWSI_no_f', 'rz_sb_mar_sfv2_DIODE_HRWSI_no_s',
+        'rz_sb_mar_sfv2_DIODE_HRWSI_no_p','rz_sb_mar_sfv2_DIODE_HRWSI_only_p', 'rz_sb_mar_sfv2_DIODE_HRWSI_only_s',
+        'rz_sb_mar_sfv2_DIODE_HRWSI_only_f','rz_sb_mar_sfv2_L1L2_loss_DIODE_HRWSI', 'rz_sb_mar_sfv2_L1L2_loss_DIODE_HRWSI',
+    ]
     # method_list = ['rz_sb_mar_CFormer_KITTI',
     #     'rz_sb_mar_EMDC',
     #     'rz_sb_mar_LRRU',
@@ -322,13 +355,16 @@ if __name__ == '__main__':
     #     'rz_sb_mar_SDCM','rz_sb_mar_TWISE']
     
     
-    method_list = ['rz_sb_mar_G2_Mono','rz_sb_mar_JARRN']
+    # method_list = ['rz_sb_mar_G2_Mono','rz_sb_mar_JARRN']
+    # method_list = ['rz_sb_mar_JARRN_mixed_line_point','rz_sb_mar_JARRN_mixed_1line_1point','rz_sb_mar_JARRN_mixed_07point_03line']
+    # method_list = ['rz_sb_mar_JARRN_mixed_05point_05line']
+    # method_list = ['rz_sb_mar_G2_Mono','rz_sb_mar_JARRN_nosoftmax']
     # pro_dict = {'lines_result': [0,1,4,16,64]}  # 线数
     # pro_dict = {'result': [0, 283/102400, 1129/102400, 3708/102400, 14691/102400]}
     # pro_dict = {'result_very_sparse':[0,1,2,3,10,20,50,100]}
     # pro_dict = {'result': [0.001,0.01,0.1,0.2,0.5,0.7]}
     # pro_dict = {'result': [1.0]}
-    pro_dict = {'result': [0.01,0.1,0.2,0.5,0.7,1.01, 1.04, 1.08,1.016,1.032, 1.064,1.0128]}
+    pro_dict = {'result': [0.01,0.1,0.2,0.5,0.7, 1.04, 1.016, 1.064,1.08,1.032, 1.0128]}
     # pro_dict = {'result': [0.2]}
     # pro_dict = {'result': [0.1,0.2,0.7]}
     # pro_dict = {'result': [0.01,0.1,0.2,0.5,0.7]}

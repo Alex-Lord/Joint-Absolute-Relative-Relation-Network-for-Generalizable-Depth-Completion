@@ -11,7 +11,7 @@ import argparse
 from PIL import Image
 from pathlib import Path
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '7'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 
 
@@ -93,7 +93,7 @@ def pred_and_save(network,rgb, point, hole_point, out_path, network_type, desc):
         gen_depth,_,_,_ = network(rgb.cuda(), point.cuda(), hole_point.cuda())  
         gen_depth = gen_depth.squeeze().to('cpu').numpy()
         depth = np.clip(gen_depth * 255., 0, 255).astype(np.int8)
-    if 'G2' in network_type:
+    if 'G2' in network_type or 'g2' in network_type:
         # SfV2  G2_Mono
         gen_depth, = network(rgb.cuda(), point.cuda(), hole_point.cuda())  
         gen_depth = gen_depth.squeeze().to('cpu').numpy()
@@ -462,19 +462,60 @@ def depth_inference():
                 # load parameters
                 if 'rz' not in method:
                     args.ReZero = False
+                
+                if method == 'rz_sb_mar_JARRN_full_05line_05point':
+                    from sfv2_networks import JARRN
+                    network = JARRN(rezero=args.ReZero)
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/result_JARRN/_rz_sb_mar_JARRN_mixed_full_05line_05point/models/epoch_100.pth'
+                    network = network.cuda()
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  
+                
+                if method == 'rz_sb_mar_JARRN_nosoftmax':
+                    from sfv2_networks import JARRN_nosoftmax
+                    network = JARRN_nosoftmax(rezero=args.ReZero)
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/Abs_Rel_train_logs/train_logs_rz_sb_mar_mar/JARRN_nosoftmax/models/epoch_100.pth'
+                    network = network.cuda()
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  JARRN_noSoftmax
+                if method == 'rz_sb_mar_JARRN_mixed_07point_03line':
+                    from sfv2_networks import JARRN
+                    network = JARRN(rezero=args.ReZero)  
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/result_JARRN/_rz_sb_mar_JARRN_mixed_0.3line_0.7point/models/epoch_60.pth'
+                    network = network.cuda()
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  JARRN
+                if method == 'rz_sb_mar_JARRN_mixed_1point_1line':
+                    from sfv2_networks import JARRN
+                    network = JARRN(rezero=args.ReZero)  
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/result_JARRN/_rz_sb_mar_JARRN_mixed_1line_1point/models/epoch_60.pth'
+                    network = network.cuda()
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  JARRN
+                if method == 'rz_sb_mar_JARRN_mixed_line_point':
+                    # 只是用采点方式，不改变GT
+                    from sfv2_networks import JARRN
+                    network = JARRN(rezero=args.ReZero)  
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/result_JARRN/_rz_sb_mar_JARRN_mixed_line_point/models/epoch_60.pth'
+                    network = network.cuda()
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) #  JARRN
+                if method == 'rz_sb_mar_JARRN_mixed_05point_05line':
+                    # 只是用采点方式，不改变GT
+                    from sfv2_networks import JARRN
+                    network = JARRN(rezero=args.ReZero)  
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/result_JARRN/_rz_sb_mar_JARRN_mixed_0.5line_0.5point_fixed/models/epoch_60.pth'
+                    network = network.cuda()
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) #  JARRN
+                
+                
                 if method == 'rz_sb_mar_JARRN':
                     from sfv2_networks import JARRN
                     network = JARRN(rezero=args.ReZero)  
-                    network = torch.compile(network)
-                    model_dir = '/data1/Chenbingyuan/Depth-Completion/AbsRel_depth/train_logs_rz_sb_mar_mar_3/models/epoch_100.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/Abs_Rel_train_logs/train_logs_rz_sb_mar_mar_3/models/epoch_100.pth'
                     network = network.cuda()
-                    network.load_state_dict(torch.load(model_dir, map_location='cuda:0')['network_state_dict'],strict=True)  #  JARRN
-                if method == 'rz_sb_mar_g2_released':
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  JARRN
+                if method == 'rz_sb_mar_g2_all_retrain':
                     from sfv2_networks import G2_Mono
                     network = G2_Mono(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/Depth-Completion/AbsRel_depth/train_logs_rz_sb_mar_mar_G2Mono/models/epoch_100.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/Abs_Rel_train_logs/train_logs_rz_sb_mar_mar_G2Mono/models/epoch_100.pth'
                     network = network.cuda()
-                    network.load_state_dict(torch.load(model_dir)['network'])
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)
                 if method == 'rz_sb_mar_sfv2_KITTI_2':
                     from sfv2_networks import sfv2_UNet_KITTI
                     network = sfv2_UNet_KITTI(rezero=args.ReZero)  
@@ -798,7 +839,6 @@ def depth_inference():
                     network = network.cuda()
                     model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_LRRU_DIODE_HRWSI/models/epoch_60.pth'
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
-                # network = torch.compile(network)
                 for mode in mode_list:
                     # 0-100
                     for pro in pro_dict[mode]:
@@ -829,19 +869,21 @@ if __name__ == "__main__":
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True
 
-    rgbd_dir = ['KITTI','nyu', 'redweb','ETH3D','Ibims', 'VKITTI']
+    rgbd_dir = ['KITTI','nyu', 'redweb','ETH3D','Ibims', 'VKITTI','Matterport3D', 'UnrealCV']
+    # rgbd_dir = ['redweb']
+    
     dataset_list = copy.deepcopy(rgbd_dir)
     for i,dir in enumerate(rgbd_dir):
         rgbd_dir[i] = '/data1/Chenbingyuan/Depth-Completion/g2_dataset/'+dir+'/val'
 
     mode_list = [ 'result']
 
-    method_list = ['rz_sb_mar_G2_Mono']
+    method_list = ['rz_sb_mar_JARRN_full_05line_05point']
 
     epoch_list = [60]
     crop = False
 
-    pro_dict = {'result':[0.01,0.1,0.2,0.5,0.7,1.01, 1.04, 1.016, 1.064,1.08,1.032, 1.0128]}
+    pro_dict = {'result':[0.01,0.1,0.2,0.5,0.7, 1.04, 1.016, 1.064,1.08,1.032, 1.0128]}
 
     current_time = datetime.datetime.now()
     formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")

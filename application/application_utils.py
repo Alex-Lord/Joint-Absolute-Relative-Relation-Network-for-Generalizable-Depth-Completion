@@ -139,7 +139,7 @@ class DepthEvaluation(object):
         value = np.sqrt(np.sum(residual) / np.count_nonzero(ground_truth))
         return value
 
-    import numpy as np
+
     @staticmethod
     def imae(depth, ground_truth, min_depth=1e-6):
         # 计算逆深度

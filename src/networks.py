@@ -21,7 +21,6 @@ sf_chan = [512, 512, 512, 512, 256, 128, 64]
 class UNet(Module):
     def __init__(self, rgb_x_layer_num: int = 7, rezero: bool = False):
         super(UNet, self).__init__()
-        
         # rgb+x channel
         layer = FirstModule(rgb_x_chan[1], rgb_x_chan[0], rezero)
         for i in range(2, rgb_x_layer_num):

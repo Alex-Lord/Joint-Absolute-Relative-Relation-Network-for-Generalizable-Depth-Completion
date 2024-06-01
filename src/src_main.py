@@ -13,7 +13,7 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel as DDP
 from typing import Dict, Tuple
 
-from .utils import save_img, DataGenerator, min_max_norm, StandardizeData
+from .utils import save_img, DataGenerator, min_max_norm, StandardizeData, on_load_checkpoint
 from .data_tools import get_dataloader
 from .losses import (
     WeightedDataLoss,
@@ -34,6 +34,7 @@ class AbsRel_depth:
             rank: torch.device,
     ) -> None:
         self.network = network.to(rank)
+        self.rank = rank
         
     def optimize_net(
             self,
@@ -199,7 +200,7 @@ class AbsRel_depth:
         self.network.train()
         # # Use DistributedDataParallel:
         # self.network = DDP(self.network, device_ids=[rank])
-        # self.network = torch.compile(self.network)
+        self.network = torch.compile(self.network)
 
         self.network = DDP(self.network, device_ids=[rank], find_unused_parameters=False)
         # create optimizer
@@ -217,7 +218,7 @@ class AbsRel_depth:
 
         # resume train
         if checkpoint is not None:
-
+            # checkpoint = on_load_checkpoint(checkpoint)
             start_epoch = checkpoint['epoch']
             print(f'Done load start_epoch')
             self.network.module.load_state_dict(checkpoint['network_state_dict'])

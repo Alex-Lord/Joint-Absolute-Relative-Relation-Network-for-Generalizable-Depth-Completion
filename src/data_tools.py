@@ -369,7 +369,7 @@ def get_lines_cby(pro_dict, rgbd_dir: Path, lines:list):
                     theta_map_path = theta_map_path.replace('.png','.npy')
                     np.save(theta_map_path, theta_map.numpy())
                     # 使用with语句打开文件
-                    with open('/home/panlingzhi/BY_Diffusion/g2_dataset/nyu/val_gt_degree/flag.txt', "w") as file:
+                    with open('/data1/Chenbingyuan/Depth-Completion/g2_dataset/nyu/val_gt_degree/flag.txt', "w") as file:
                         # 写入文本内容
                         file.write("Done with time")  
     def get_lines(lines:list, file_path:str, line_gap=0.4, single_line_gap=0.08):
@@ -402,12 +402,12 @@ def get_lines_cby(pro_dict, rgbd_dir: Path, lines:list):
             depth_map = mapping_copy[0].astype('uint8')
             cv2.imwrite(save_path, depth_map)
     
-    if not os.path.exists('/home/panlingzhi/BY_Diffusion/g2_dataset/nyu/val_gt_degree/flag.txt'):
+    if not os.path.exists('/data1/Chenbingyuan/Depth-Completion/g2_dataset/nyu/val_gt_degree/flag.txt'):
         generate_degree_map(rgbd_dir)
     else:print('degree_map file already exits!')
     
     # 判断degree_map文件是否存在
-    if not os.path.exists('/home/panlingzhi/BY_Diffusion/g2_dataset/nyu/val_gt_degree/flag.txt'):
+    if not os.path.exists('/data1/Chenbingyuan/Depth-Completion/g2_dataset/nyu/val_gt_degree/flag.txt'):
         generate_degree_map(rgbd_dir)
     else:print('degree_map file already exits!')
     
@@ -609,7 +609,7 @@ class RGBDDataset(Dataset):
         super(RGBDDataset, self).__init__()
         self.data_dir = data_dir
         self.transform = rgbd_transform
-        datalist = '/home/panlingzhi/BY_Diffusion/g2_dataset/data_list/'
+        datalist = '/data1/Chenbingyuan/Depth-Completion/g2_dataset/data_list/'
         if os.path.exists(datalist + 'rgb_ls.pkl'):
             print('datalist already exists')
             rgb_list = open(datalist + 'rgb_ls.pkl', 'rb')
@@ -621,6 +621,7 @@ class RGBDDataset(Dataset):
         else:
             print('datalist do not exists')
             self.rgb_ls, self.depth_ls = self.__getrgbd__(self.data_dir)
+            os.makedirs(datalist, exist_ok=True)
             rgb_list = open(datalist + 'rgb_ls.pkl', 'wb')
             pickle.dump(self.rgb_ls, rgb_list)
             rgb_list.close()
@@ -744,6 +745,24 @@ class RGBDDataset(Dataset):
         point_map = self.__sample_metric__(gt.shape, zero_rate) * distorted_gt
         # point_map = self.__sample_metric__(gt.shape, zero_rate)
         return point_map
+    def __getline__(self, gt: Tensor, hole_gt: Tensor) -> Tensor:
+        npy_folder = '/data1/Chenbingyuan/Depth-Completion/application/lines'
+
+        # 获取所有npy文件路径
+        npy_files = [os.path.join(npy_folder, f) for f in os.listdir(npy_folder) if f.endswith('.npy')]
+
+        # 随机选择一个mask npy文件
+        mask_npy_path = random.choice(npy_files)
+
+        # 读取mask numpy数组
+        mask = np.load(mask_npy_path)
+        if mask.ndim == 2:
+            mask = np.expand_dims(mask, axis=0)
+
+        # 转换为 PyTorch Tensor
+        mask = torch.from_numpy(mask).to(gt.dtype)
+        point_map = gt * mask
+        return point_map
 
     def __len__(self) -> int:
         assert (len(self.rgb_ls) == len(self.depth_ls)
@@ -762,8 +781,19 @@ class RGBDDataset(Dataset):
         rgb = rgb_read(rgb_path)
         gt = depth_read(depth_path)
         rgb, gt, hole_gt = self.transform(rgb, gt)
-        point_map = self.__getpoint__(gt, hole_gt)
-        return rgb, gt, point_map, hole_gt
+        
+        gt_cp = torch.clone(gt)
+        hole_gt_cp = torch.clone(hole_gt)
+        
+        # 30概率变成线数
+        random_factor = np.random.uniform(0.0, 1.0)
+        
+        line_factor = 0
+        if random_factor < line_factor:
+            point_map = self.__getline__(gt, hole_gt)
+        else:
+            point_map = self.__getpoint__(gt, hole_gt)
+        return rgb, gt_cp, point_map, hole_gt_cp
 
 
 class HoleDataset(Dataset):
@@ -774,7 +804,7 @@ class HoleDataset(Dataset):
         super(HoleDataset, self).__init__()
         self.data_dir = data_dir
         self.transform = hole_transform
-        datalist = '/home/panlingzhi/BY_Diffusion/g2_dataset/data_list/'
+        datalist = '/data1/Chenbingyuan/Depth-Completion/g2_dataset/data_list/'
         if os.path.exists(datalist + 'hole_ls.pkl'):
             hole_data_list = open(datalist + 'hole_ls.pkl', 'rb')
             self.hole_ls = pickle.load(hole_data_list)
@@ -792,13 +822,8 @@ class HoleDataset(Dataset):
     #         hole.append(file)
     #     return hole
     def __gethole__(path_all: list) -> List[Path]:
-        hole = []
         for path in path_all:
-            for file in Path(path).rglob('*'):
-                # if 'png' in str(file):
-                #     hole.append(file)
-                for file_2 in file.rglob('*.png'):
-                    hole.append(file_2)
+            hole = glob.glob(os.path.join(path, '**/*.png'), recursive=True)
         return hole
 
     def __len__(self) -> int:

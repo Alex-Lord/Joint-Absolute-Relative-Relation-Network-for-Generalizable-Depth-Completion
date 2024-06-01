@@ -1,9 +1,9 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '5,6,7'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
 import argparse
 from pathlib import Path
 from src.src_main import AbsRel_depth
-from src.networks import UNet
+from src.networks import UNet, V2Net
 from src.utils import str2bool, DDPutils
 
 import torch
@@ -92,7 +92,7 @@ def parse_arguments():
         type=int,
         required=False,
         nargs="+",
-        default=12,
+        default=8,
         help="batch sizes",
     )
     parser.add_argument(
@@ -142,8 +142,8 @@ def DDP_main(rank, world_size):
         else:
             args.save_dir += '_gd'
     args.save_dir += '_' + args.mode
-    args.save_dir += '_' + args.mode + '_G2Mono'
-    args.save_dir = os.path.join('/data1/Chenbingyuan/Depth-Completion/AbsRel_depth', args.save_dir)
+    args.save_dir += '_' + args.mode + '_JARRN_full_G2V2'
+    args.save_dir = os.path.join('/data1/Chenbingyuan/Depth-Completion/Abs_Rel_train_logs', args.save_dir)
     args.save_dir = Path(args.save_dir)
 
     # DDP components
@@ -152,7 +152,8 @@ def DDP_main(rank, world_size):
     if rank == 0:
         print(f"Selected arguments: {args}")
 
-    network = UNet(rezero=args.rezero)
+    # network = UNet(rezero=args.rezero)
+    network = V2Net()
     print_model_parm_nums(network)
 
     semigan = AbsRel_depth(
@@ -161,7 +162,7 @@ def DDP_main(rank, world_size):
     )
     
     args.resume_train = False
-    args.model_dir = args.save_dir / 'models' / 'epoch_60.pth'
+    args.model_dir = '/data1/Chenbingyuan/Depth-Completion/Abs_Rel_train_logs/train_logs_rz_sb_mar_mar/JARRN_nosoftmax/models/epoch_70.pth'
     # resume train
     if args.resume_train:
         if rank == 0:
@@ -175,10 +176,10 @@ def DDP_main(rank, world_size):
     semigan.train(
         args=args,
         rank=rank,
-        learning_rate=0.0002,
+        learning_rate=0.0001,
         feedback_factor=1000,
         checkpoint_factor=2,
-        num_workers=2,
+        num_workers=4,
         checkpoint=checkpoint,
     )
 
