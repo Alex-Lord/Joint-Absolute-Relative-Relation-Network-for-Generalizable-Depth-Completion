@@ -13,12 +13,12 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel as DDP
 from typing import Dict, Tuple
 
-from .utils import save_img, DataGenerator, min_max_norm, StandardizeData
+from .utils import save_img, DataGenerator, min_max_norm, StandardizeData, on_load_checkpoint
 from .data_tools import get_dataloader
 from .losses import (
     WeightedDataLoss,
-    WeightedDataLossL2,
-
+    # The above code is defining a class called "WeightedMSGradLoss".
+    # The above code is defining a class called "WeightedMSGradLoss".
     WeightedMSGradLoss,
     MaskedProbExpLoss,
 )
@@ -34,7 +34,8 @@ class AbsRel_depth:
             rank: torch.device,
     ) -> None:
         self.network = network.to(rank)
-        # print(network)
+        self.rank = rank
+        
     def optimize_net(
             self,
             rgb: Tensor,
@@ -47,28 +48,7 @@ class AbsRel_depth:
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
 
         optimizer.zero_grad()
-        # with autocast():
-        #     # loss in absolute domain
-        #     reg_function = WeightedDataLoss()
-        #     # depth, s, f, prob, dense_out = self.network(rgb, point_map, hole_tuple[1])
-        #     depth, s, f, prob = self.network(rgb, point_map, hole_tuple[1])
-        #     loss_adepth = reg_function(depth, gt, hole_tuple[1])
-
-        #     # loss in relative domain
-        #     sta_tool = StandardizeData(mode=args.mode)
-        #     sta_depth, sta_gt = sta_tool(depth, gt, hole_tuple[0])
-        #     loss_rdepth = reg_function(sta_depth, sta_gt, hole_tuple[0])
-
-        #     if args.msgrad:
-        #         grad_function = WeightedMSGradLoss(sobel=args.sobel)
-        #         loss_rgrad = grad_function(sta_depth, sta_gt, hole_tuple[0])
-        #         loss = loss_adepth + loss_rdepth + 0.5 * loss_rgrad
-        #     else:
-        #         loss = loss_adepth + loss_rdepth
-        #         loss_rgrad = torch.tensor(0.)
-        
-        
-        with autocast(enabled=False):  # L1 L2 loss
+        with autocast():
             # loss in absolute domain
             reg_function = WeightedDataLoss()
             # depth, s, f, prob, dense_out = self.network(rgb, point_map, hole_tuple[1])
@@ -76,19 +56,64 @@ class AbsRel_depth:
             loss_adepth = reg_function(depth, gt, hole_tuple[1])
 
             # loss in relative domain
-            reg_function = WeightedDataLossL2()
-            loss_rdepth = reg_function(depth, gt, hole_tuple[1])
+            sta_tool = StandardizeData(mode=args.mode)
+            sta_depth, sta_gt = sta_tool(depth, gt, hole_tuple[0])
+            loss_rdepth = reg_function(sta_depth, sta_gt, hole_tuple[0])
 
-            loss = 0.5*loss_adepth + 0.5*loss_rdepth
-            
-            loss_rgrad = loss_rdepth
+
+            if args.msgrad:
+                grad_function = WeightedMSGradLoss(sobel=args.sobel)
+                loss_rgrad = grad_function(sta_depth, sta_gt, hole_tuple[0])
+                loss = loss_adepth + loss_rdepth + 0.5 * loss_rgrad
+            else:
+                loss = loss_adepth + loss_rdepth
+                loss_rgrad = torch.tensor(0.)
+            # loss = loss + 0.05 * loss_exp_prob
         scaler.scale(loss).backward()
         scaler.step(optimizer)
         scaler.update()
+        # loss in absolute domain
+        # reg_function = WeightedDataLoss()
+        # # depth, s, f, prob, dense_out = self.network(rgb, point_map, hole_tuple[1])
+
+        # depth, s, f, prob = self.network(rgb, point_map, hole_tuple[1])
+        # loss_adepth = reg_function(depth, gt, hole_tuple[1])
+
+        # # loss in relative domain
+        # sta_tool = StandardizeData(mode=args.mode)
+        # sta_depth, sta_gt = sta_tool(depth, gt, hole_tuple[0])
+        # loss_rdepth = reg_function(sta_depth, sta_gt, hole_tuple[0])
+
+        # # loss in ProbabilisticNCNNs
+        # # reg_function = MaskedProbExpLoss()
+        # # loss_exp_prob = reg_function(dense_out, gt)
+        # if args.msgrad:
+        #     grad_function = WeightedMSGradLoss(sobel=args.sobel)
+        #     loss_rgrad = grad_function(sta_depth, sta_gt, hole_tuple[0])
+        #     loss = loss_adepth + loss_rdepth + 0.5 * loss_rgrad
+        # else:
+        #     loss = loss_adepth + loss_rdepth
+        #     loss_rgrad = torch.tensor(0.)
+        # # loss = loss + 0.05 * loss_exp_prob
+
+        # # scaler.scale(loss).backward()  # 替换为以下两行
+        # loss.backward()
+        # optimizer.step()
+
+        # scaler.update()  # 删除这一行
+
         self.loss = loss
 
+        # return loss_adepth.item(), loss_rdepth.item(), loss_rgrad.item(), loss_exp_prob.item(), depth, s, f, prob, dense_out
         return loss_adepth.item(), loss_rdepth.item(), loss_rgrad.item(), depth, s, f, prob
+        
+        self.loss = loss
 
+        # loss_gen.backward()
+        # optimizer.step()
+
+        # return loss_adepth.item(), loss_rdepth.item(), loss_rgrad.item(), loss_exp_prob.item(), depth, s, f, prob, dense_out
+        return loss_adepth.item(), loss_rdepth.item(), loss_rgrad.item(), depth, s, f, prob
     def feedback_module(
             self,
             elapsed: str,
@@ -175,7 +200,7 @@ class AbsRel_depth:
         self.network.train()
         # # Use DistributedDataParallel:
         # self.network = DDP(self.network, device_ids=[rank])
-        # self.network = torch.c                                                                                                                                                            ompile(self.network)
+        self.network = torch.compile(self.network)
 
         self.network = DDP(self.network, device_ids=[rank], find_unused_parameters=False)
         # create optimizer
@@ -193,7 +218,7 @@ class AbsRel_depth:
 
         # resume train
         if checkpoint is not None:
-
+            # checkpoint = on_load_checkpoint(checkpoint)
             start_epoch = checkpoint['epoch']
             print(f'Done load start_epoch')
             self.network.module.load_state_dict(checkpoint['network_state_dict'])

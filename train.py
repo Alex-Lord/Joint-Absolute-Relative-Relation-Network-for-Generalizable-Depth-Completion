@@ -1,9 +1,9 @@
 import argparse
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]='2,3'
+os.environ["CUDA_VISIBLE_DEVICES"]='1,2,3'
 from pathlib import Path
 from src.src_main import AbsRel_depth
-from src.networks import UNet, CBYUNet
+from src.networks import UNet
 from src.utils import str2bool, DDPutils
 
 import torch
@@ -131,7 +131,7 @@ def parse_arguments():
         type=int,
         required=False,
         nargs="+",
-        default=8,
+        default=1,
         # default=1,
         help="batch sizes",
     )
@@ -197,7 +197,7 @@ def DDP_main(rank, world_size):
             args.save_dir += '_gd'
             
     args.save_dir += '_' + args.mode
-    args.save_dir += '_' + 'JARRN_full_nosoftmax'
+    args.save_dir += '_' + 'test'
     args.save_dir = Path(args.save_dir)
     
     # DDP components
@@ -210,7 +210,7 @@ def DDP_main(rank, world_size):
         formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
         print("Started Time:", formatted_time)
         print(f'We use {args.model} model!!!')
-    model_dict = { 'unet':UNet(rezero=args.rezero), 'cby_unet':CBYUNet(rezero=args.rezero)}
+    model_dict = { 'unet':UNet(rezero=args.rezero)}
     network = model_dict[args.model]
     
     if rank == 0:
@@ -239,7 +239,7 @@ def DDP_main(rank, world_size):
         learning_rate=0.0002,
         feedback_factor=1000,
         checkpoint_factor=2,
-        num_workers=4,
+        num_workers=1,
         checkpoint=checkpoint,
     )
     if rank == 0:

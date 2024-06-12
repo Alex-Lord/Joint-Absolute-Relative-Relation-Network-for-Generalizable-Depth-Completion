@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch.nn import Module, Conv2d, init, Sequential, ModuleDict, Softmax
 from custom_blocks import *
-from src.modules import FirstModule, UNetModule, StackedBottleNeck
+from src.modules import FirstModule, UNetModule, StackedBottleNeck, Encoder, Decoder
 from einops import rearrange
 from torch.cuda.amp import autocast
 from src.utils import save_feature_as_uint8colored
@@ -17,6 +17,112 @@ from src.cby_unet import *
 
 
 chan = [512, 512, 512, 512, 256, 128, 64]
+
+class JARRN_nosfp_direct_2branch(Module):
+    def __init__(self, rgb_x_layer_num: int = 7, rezero: bool = False):
+        super(JARRN_nosfp_direct_2branch, self).__init__()
+        # rgb+x channel
+        layer = FirstModule(chan[1], chan[0], rezero)
+        for i in range(2, rgb_x_layer_num):
+            layer = UNetModule(layer, chan[i], chan[i - 1], rezero)
+
+        self.rgb_x_block = Sequential(
+            Conv2d(5, chan[i], 3, 1, 1),
+            StackedBottleNeck(chan[i], chan[i], rezero),
+            layer,
+            StackedBottleNeck(2 * chan[i], chan[i], rezero),
+            Conv2d(chan[i], 1, 3, 1, 1),
+        )
+        
+        # sfmap channel
+        sf_layer = FirstModule(chan[1], chan[0], rezero)
+        for i in range(2, rgb_x_layer_num):
+            sf_layer = UNetModule(sf_layer, chan[i], chan[i - 1], rezero)
+
+        self.sfmap_block = Sequential(
+            Conv2d(3, chan[i], 3, 1, 1),
+            StackedBottleNeck(chan[i], chan[i], rezero),
+            sf_layer,
+            StackedBottleNeck(2 * chan[i], chan[i], rezero),
+            Conv2d(chan[i], 1, 3, 1, 1),  #直接将参数量翻倍
+        )
+        
+        # self.softmax = nn.Softmax(dim=1)
+        
+        # initializing
+        for m in self.modules():
+            if isinstance(m, Conv2d):
+                init.kaiming_normal_(m.weight, a=0.2)
+                init.zeros_(m.bias)
+        
+ 
+    @autocast()
+    def forward(
+        self,
+        rgb: Tensor,
+        point: Tensor,
+        hole_point: Tensor, 
+    ) -> Tensor:
+
+        x1 = torch.cat((rgb, point, hole_point), dim=1)
+        depth = self.rgb_x_block(x1)
+        x2 = torch.cat((depth, point, hole_point), dim=1)
+        output = self.sfmap_block(x2)
+        return output,output,output,output
+
+# 直接将参数量翻倍_2
+rgb_x_chan = chan
+sf_chan = chan
+class JARRN_nosfp_direct_2branch_2(Module):
+    def __init__(self, rgb_x_layer_num: int = 7, rezero: bool = False):
+        super(JARRN_nosfp_direct_2branch_2, self).__init__()
+        # rgb+x channel
+        layer = FirstModule(rgb_x_chan[1], rgb_x_chan[0], rezero)
+        for i in range(2, rgb_x_layer_num):
+            layer = UNetModule(layer, rgb_x_chan[i], rgb_x_chan[i - 1], rezero)
+
+        self.rgb_x_block = Sequential(
+            Conv2d(5, rgb_x_chan[i], 3, 1, 1),
+            StackedBottleNeck(rgb_x_chan[i], rgb_x_chan[i], rezero),
+            layer,
+            StackedBottleNeck(2 * rgb_x_chan[i], rgb_x_chan[i], rezero),
+            Conv2d(rgb_x_chan[i], 1, 3, 1, 1),
+        )
+        
+        # sfmap channel
+        sf_layer = FirstModule(sf_chan[1], sf_chan[0], rezero)
+        for i in range(2, rgb_x_layer_num):
+            sf_layer = UNetModule(sf_layer, sf_chan[i], sf_chan[i - 1], rezero)
+
+        self.sfmap_block = Sequential(
+            Conv2d(1, sf_chan[i], 3, 1, 1),
+            StackedBottleNeck(sf_chan[i], sf_chan[i], rezero),
+            sf_layer,
+            StackedBottleNeck(2 * sf_chan[i], sf_chan[i], rezero),
+            Conv2d(rgb_x_chan[i], 1, 3, 1, 1),  #直接将参数量翻倍
+        )
+        
+        # self.softmax = nn.Softmax(dim=1)
+        
+        # initializing
+        for m in self.modules():
+            if isinstance(m, Conv2d):
+                init.kaiming_normal_(m.weight, a=0.2)
+                init.zeros_(m.bias)
+        
+ 
+    @autocast()
+    def forward(
+        self,
+        rgb: Tensor,
+        point: Tensor,
+        hole_point: Tensor, 
+    ) -> Tensor:
+
+        x1 = torch.cat((rgb, point, hole_point), dim=1)
+        depth = self.rgb_x_block(x1)
+        output = self.sfmap_block(depth)
+        return output,output,output,output
 
 class JARRN(Module):
     def __init__(self, layer_num: int = 7, rezero: bool = True):
@@ -151,6 +257,56 @@ class JARRN_nosoftmax(Module):
         depth = (depth*s+f)*prob + depth * (1-prob)
         return depth,depth,depth,depth
 
+class JARRN_G2V2(nn.Module):
+    def __init__(self, dims=[96, 192, 384, 768], depths=[3, 3, 9, 3], dp_rate=0.0, norm_type='CNX'):
+        super(JARRN_G2V2, self).__init__()
+
+        self.visual_branch = nn.Sequential(
+                Encoder(5, dims, depths, dp_rate, norm_type),
+                Decoder(1, dims, norm_type)
+            )
+        
+        self.refine_branch = nn.Sequential(
+                Encoder(3, dims, depths, dp_rate, norm_type),
+                Decoder(3, dims, norm_type)
+        )
+        
+        self.softmax = nn.Softmax(dim=1)
+        # initializing
+        self.apply(self._init_weights)
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Conv2d):
+            nn.init.xavier_normal_(m.weight)
+            nn.init.zeros_(m.bias)
+
+    def forward(self, rgb, raw, hole_raw):
+        x = torch.cat((rgb, raw, hole_raw), dim=1)
+        
+        rel_depth = self.visual_branch(x)
+        refine_branch_output = self.refine_branch(torch.cat((x[:, 3:, :, :], raw), dim=1))
+        
+        s = torch.sigmoid(refine_branch_output[:,0,:,:]).unsqueeze(1) * 2  # sfv2或者不使用p
+        # s = torch.ones_like(sfmap[:,0,:,:].unsqueeze(1))  # 去掉s
+        
+        
+        # f缩放到-1 1
+        f = refine_branch_output[:,1,:,:].unsqueeze(1)  # sfv2 或者不适用prob
+        # f = sfmap[:,0,:,:].unsqueeze(1)  # 去掉s
+        f = torch.nn.functional.hardtanh(f, min_val= -1, max_val=1)  # sfv2或者不适用prob
+        # f = torch.zeros_like(sfmap[:,0,:,:].unsqueeze(1))  # 不使用f
+        
+        
+        # prob是概率 使用prob                                              
+        prob = self.softmax(refine_branch_output[:,2,:,:]).unsqueeze(1)  # sfv2，使用p
+        # prob = self.sigmoid(sfmap[:,2,:,:]).unsqueeze(1)  # sfv2，sigmoid
+        # prob = self.softmax(sfmap[:,1,:,:]).unsqueeze(1)  # 去掉s
+        # prob = torch.ones_like(f)  # 不使用p
+        # # 使用G2时注释
+        depth = (rel_depth*s+f)*prob + rel_depth * (1-prob)
+        # prob = f
+        return depth,s,f,prob
+        # return depth
 
 
 # class G2_Mono(Module):
@@ -843,6 +999,120 @@ class sfv2_UNet(Module):
         
         depth = (depth*s+f)*prob + depth * (1-prob)
         return depth,s,f,prob
+
+
+import torch
+
+def depth_to_real(depth, sparse_depth, sparse_depth_mask):
+    '''
+        Transfer relative MiDaS depths to real depths with known points
+        Args:
+        depth: [batch, 1, h, w] output from MiDaS
+        sparse_depth: [batch, 1, h, w] known distances
+        sparse_depth_mask: [batch, 1, h, w] mask indicating known distances (1 where known, 0 otherwise)
+    '''
+
+    # Initialize output tensor
+    batch_size, _, height, width = depth.shape
+    real_depth = torch.zeros_like(depth)
+
+    # Iterate over each batch
+    for b in range(batch_size):
+        # Get the current batch depth, sparse depth, and mask
+        midas_depth = depth[b, 0]
+        known_depth = sparse_depth[b, 0]
+        mask = sparse_depth_mask[b, 0]
+        
+        # Normalize midas depth to 0...1
+        midas_depth_array = midas_depth / torch.max(midas_depth)
+        
+        # Get known points
+        known_points = torch.nonzero(mask)
+        
+        if len(known_points) >= 2:
+            # Get pairs of normalized relative and real depths
+            points = torch.stack([midas_depth_array[known_points[:, 0], known_points[:, 1]], known_depth[known_points[:, 0], known_points[:, 1]]], dim=1)
+
+            # Solve the system of equations : 
+            # relative_depth*(1/min_depth) + (1-relative_depth)*(1/max_depth) = 1/real_depth
+            x = points[:, 0]  # normalized relative depth
+            y = 1 / points[:, 1]  # reversed real depth
+            A = torch.stack([x, 1 - x], dim=1)
+
+            sol = torch.linalg.lstsq(A, y).solution
+            s, t = sol[:2]
+
+            min_depth = 1 / s
+            max_depth = 1 / t
+
+            # Align relative depth to real depth
+            A = (1 / min_depth) - (1 / max_depth)
+            B = 1 / max_depth
+            midas_depth_aligned = 1 / (A * midas_depth_array + B)
+            
+            # Clamp the output to range [0, 1]
+            # midas_depth_aligned = torch.clamp(midas_depth_aligned, 0, 1)
+
+            real_depth[b, 0] = midas_depth_aligned
+        else:
+            print(f'Not enough known points to make real depth estimation for batch {b}')
+            return None
+
+    return real_depth
+
+
+class sfv2_UNet_LSM(Module):
+    def __init__(self, rgb_x_layer_num: int = 7, rezero: bool = True):
+        super(sfv2_UNet_LSM, self).__init__()
+        rgb_x_chan = [512, 512, 512, 512, 256, 128, 64]
+        sf_chan = [512, 512, 512, 512, 256, 128, 64]
+        # rgb+x channel
+        layer = FirstModule(rgb_x_chan[1], rgb_x_chan[0], rezero)
+        for i in range(2, rgb_x_layer_num):
+            layer = UNetModule(layer, rgb_x_chan[i], rgb_x_chan[i - 1], rezero)
+
+        self.rgb_x_block = Sequential(
+            Conv2d(5, rgb_x_chan[i], 3, 1, 1),
+            StackedBottleNeck(rgb_x_chan[i], rgb_x_chan[i], rezero),
+            layer,
+            StackedBottleNeck(2 * rgb_x_chan[i], rgb_x_chan[i], rezero),
+            Conv2d(rgb_x_chan[i], 1, 3, 1, 1),
+        )
+
+        # sfmap channel
+        sf_layer = FirstModule(sf_chan[1], sf_chan[0], rezero)
+        for i in range(2, rgb_x_layer_num):
+            sf_layer = UNetModule(sf_layer, sf_chan[i], sf_chan[i - 1], rezero)
+
+        self.sfmap_block = Sequential(
+            Conv2d(3, sf_chan[i], 3, 1, 1),
+            StackedBottleNeck(sf_chan[i], sf_chan[i], rezero),
+            sf_layer,
+            StackedBottleNeck(2 * sf_chan[i], sf_chan[i], rezero),
+            Conv2d(rgb_x_chan[i], 3, 3, 1, 1),  #原始sfv2
+        )
+        
+        self.softmax = nn.Softmax(dim=1)
+
+        # initializing
+        for m in self.modules():
+            if isinstance(m, Conv2d):
+                init.kaiming_normal_(m.weight, a=0.2)
+                init.zeros_(m.bias)
+        
+    @autocast()
+    def forward(
+        self,
+        rgb: Tensor,
+        point: Tensor,
+        hole_point: Tensor, 
+    ) -> Tensor:
+
+        x1 = torch.cat((rgb, point, hole_point), dim=1)
+        depth = self.rgb_x_block(x1)
+        depth = depth_to_real(depth, point, hole_point)
+        depth = torch.clamp(depth, 0, 1)
+        return depth,depth,depth,depth
     
 
 

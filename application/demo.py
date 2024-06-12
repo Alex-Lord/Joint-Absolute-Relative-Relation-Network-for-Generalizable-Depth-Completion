@@ -11,7 +11,7 @@ import argparse
 from PIL import Image
 from pathlib import Path
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 
 
 
@@ -83,17 +83,21 @@ def parse_arguments():
 
 def pred_and_save(network,rgb, point, hole_point, out_path, network_type, desc):
     KITTI_factor = 80.
+    if 'JARRN_nosfp_direct_2branch_DIODE_HRWSI' == network_type:
+        gen_depth,_,_,_ = network(rgb.cuda(), point.cuda(), hole_point.cuda())  
+        gen_depth = gen_depth.squeeze().to('cpu').numpy()
+        depth = np.clip(gen_depth * 255., 0, 255).astype(np.int8)
     if 'JARRN' in network_type or 'DIODE' in network_type:
         # SfV2  G2_Mono
         gen_depth,_,_,_ = network(rgb.cuda(), point.cuda(), hole_point.cuda())  
         gen_depth = gen_depth.squeeze().to('cpu').numpy()
         depth = np.clip(gen_depth * 255., 0, 255).astype(np.int8)
-    if 'sfv2' in network_type or 'DIODE' in network_type:
+    elif 'sfv2' in network_type or 'DIODE' in network_type:
         # SfV2  G2_Mono
         gen_depth,_,_,_ = network(rgb.cuda(), point.cuda(), hole_point.cuda())  
         gen_depth = gen_depth.squeeze().to('cpu').numpy()
         depth = np.clip(gen_depth * 255., 0, 255).astype(np.int8)
-    if 'G2' in network_type or 'g2' in network_type:
+    elif 'G2' in network_type or 'g2' in network_type:
         # SfV2  G2_Mono
         gen_depth, = network(rgb.cuda(), point.cuda(), hole_point.cuda())  
         gen_depth = gen_depth.squeeze().to('cpu').numpy()
@@ -162,6 +166,36 @@ def pred_and_save(network,rgb, point, hole_point, out_path, network_type, desc):
         K = K.unsqueeze(0)
         gen_depth,_,_,_ = network(rgb.cuda(), point.cuda(), K.cuda())  
         gen_depth = gen_depth.squeeze().to('cpu').numpy()
+        depth = np.clip(gen_depth * 255., 0, 255).astype(np.int8)
+    elif 'BPnet' in network_type and 'DIODE_HRWSI' not in network_type:           
+        # PENET
+        if desc == 'nyu':
+            fx, fy, cx, cy = 582.6244, 582.6910, 313.0447, 238.4438
+        elif desc == 'DIODE':
+            fx, fy, cx, cy = 886.81, 927.06, 512, 384
+        elif desc == 'redweb':
+            fx, fy, cx, cy = 582.6244, 582.6910, 313.0447, 238.4438
+        elif desc == 'HRWSI':
+            fx, fy, cx, cy = 582.6244, 582.6910, 313.0447, 238.4438
+        elif desc == 'ETH3D':
+            fx, fy, cx, cy = 3429.76, 3429.06, 3117.98, 2061.68
+        elif desc == 'Ibims':
+            fx, fy, cx, cy = 582.6244, 582.6910, 313.0447, 238.4438
+        elif desc == 'KITTI':
+            fx, fy, cx, cy = 984.2439, 980.8141, 690.0, 233.1966
+        elif desc == 'VKITTI':
+            fx, fy, cx, cy = 984.2439, 980.8141, 690.0, 233.1966
+        elif desc == 'Matterport3D':
+            fx, fy, cx, cy = 582.6244, 582.6910, 313.0447, 238.4438
+        elif desc == 'UnrealCV':
+            fx, fy, cx, cy = 582.6244, 582.6910, 313.0447, 238.4438
+        K = torch.Tensor([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
+        K = K.unsqueeze(0)
+        point = point * KITTI_factor #  KITTI
+        gen_depth = network(rgb.cuda(), point.cuda(), K.cuda())  
+        gen_depth = gen_depth[-1]
+        gen_depth = gen_depth.squeeze().to('cpu').numpy().astype(np.float32)
+        gen_depth = (gen_depth / KITTI_factor)  # KITTI
         depth = np.clip(gen_depth * 255., 0, 255).astype(np.int8)
     elif 'ReDC' in network_type and 'DIODE_HRWSI' not in network_type:          
         # ReDC
@@ -411,6 +445,7 @@ def demo(args, network, pro, mode, network_type):
         else:
             png_files = glob.glob(args.rgbd_dir + '/**/*.png', recursive=True)
             for file in tqdm(png_files, desc=desc):
+                # print(file)
                 str_file = file
                 if '_rgb' in str_file:
                     if 'dis.png' not in str_file: continue
@@ -462,7 +497,24 @@ def depth_inference():
                 # load parameters
                 if 'rz' not in method:
                     args.ReZero = False
-                
+                if method == 'rz_sb_mar_JARRN_G2V2_full':
+                    from sfv2_networks import JARRN_G2V2
+                    network = JARRN_G2V2()
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/Abs_Rel_train_logs/train_logs_rz_sb_mar_mar_JARRN_full_G2V2/models/epoch_100.pth'
+                    network = network.cuda()
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  
+                if method == 'rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI':
+                    from sfv2_networks import JARRN_nosfp_direct_2branch
+                    network = JARRN_nosfp_direct_2branch(rezero=args.ReZero)
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/result_JARRN/_rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI/models/epoch_60.pth'
+                    network = network.cuda()
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  
+                if method == 'rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI_2':
+                    from sfv2_networks import JARRN_nosfp_direct_2branch_2
+                    network = JARRN_nosfp_direct_2branch_2(rezero=args.ReZero)
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/result_JARRN/_rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI_2/models/epoch_60.pth'
+                    network = network.cuda()
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  
                 if method == 'rz_sb_mar_JARRN_full_05line_05point':
                     from sfv2_networks import JARRN
                     network = JARRN(rezero=args.ReZero)
@@ -519,159 +571,165 @@ def depth_inference():
                 if method == 'rz_sb_mar_sfv2_KITTI_2':
                     from sfv2_networks import sfv2_UNet_KITTI
                     network = sfv2_UNet_KITTI(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_KITTI_2/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_KITTI_2/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
                 if method == 'rz_sb_mar_sfv2_DIODE_HRWSI':
                     from sfv2_networks import sfv2_UNet
                     network = sfv2_UNet(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI/models/epoch_60.pth'
+                    network = network.cuda()
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
+                if method == 'rz_sb_mar_sfv2_DIODE_HRWSI_LSM':
+                    from sfv2_networks import sfv2_UNet_LSM
+                    network = sfv2_UNet_LSM(rezero=args.ReZero)  
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
                 if method == 'rz_sb_mar_sfv2_DIODE_HRWSI_f22':
                     from sfv2_networks import sfv2_UNet_f22
                     network = sfv2_UNet_f22(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_f22/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_f22/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
                 
                 if method == 'rz_sb_mar_sfv2_DIODE_HRWSI_f11':
                     from sfv2_networks import sfv2_UNet_f11
                     network = sfv2_UNet_f11(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_f11/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_f11/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
                 if method == 'rz_sb_mar_sfv2_DIODE_HRWSI_f0505':
                     from sfv2_networks import sfv2_UNet_f0505
                     network = sfv2_UNet_f0505(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_f0505/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_f0505/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
                 if method == 'rz_sb_mar_sfv2_DIODE_HRWSI_s005':
                     from sfv2_networks import sfv2_UNet_s005
                     network = sfv2_UNet_s005(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_s005/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_s005/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
                 if method == 'rz_sb_mar_sfv2_DIODE_HRWSI_s05':
                     from sfv2_networks import sfv2_UNet_s05
                     network = sfv2_UNet_s05(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_s05/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_s05/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
                 
                 if method == 'rz_sb_mar_sfv2_DIODE_HRWSI_relative_loss':
                     from sfv2_networks import sfv2_UNet
                     network = sfv2_UNet(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_relative/models/epoch_24.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_relative/models/epoch_24.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
                 if method == 'rz_sb_mar_sfv2_DIODE_HRWSI_tiny':
                     from sfv2_networks import sfv2_UNet_tiny
                     network = sfv2_UNet_tiny(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_Tiny/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_Tiny/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
                 if method == 'rz_sb_mar_sfv2_DIODE_HRWSI_small':
                     from sfv2_networks import sfv2_UNet_small
                     network = sfv2_UNet_small(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_Small/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_Small/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
                 if method == 'rz_sb_mar_sfv2_DIODE_HRWSI_large':
                     from sfv2_networks import sfv2_UNet_large
                     network = sfv2_UNet_large(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_Large/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_Large/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_unscale':
                     from sfv2_networks import sfv2_UNet_unscale
                     network = sfv2_UNet_unscale(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
                 elif method == 'bn_sb_mar_sfv2_DIODE_HRWSI':
                     from sfv2_networks import sfv2_UNet_bn
                     network = sfv2_UNet_bn(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_bn_sb_mar_sfv2_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_bn_sb_mar_sfv2_DIODE_HRWSI/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_bn':
                     from sfv2_networks import sfv2_UNet_bn
                     network = sfv2_UNet_bn(rezero=False)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_bn_retrain0402/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_bn_retrain0402/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  #  Sfv2
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_no_f':
                     from sfv2_networks import sfv2_UNet_no_f
                     network = sfv2_UNet_no_f(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_no_f/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_no_f/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_no_s':
                     from sfv2_networks import sfv2_UNet_no_s
                     network = sfv2_UNet_no_s(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_no_s/models/epoch_58.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_no_s/models/epoch_58.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_no_p':
                     from sfv2_networks import sfv2_UNet_no_p
                     network = sfv2_UNet_no_p(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_no_p/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_no_p/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_only_f':
                     from sfv2_networks import sfv2_UNet_only_f
                     network = sfv2_UNet_only_f(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_only_f/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_only_f/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_only_s':
                     from sfv2_networks import sfv2_UNet_only_s
                     network = sfv2_UNet_only_s(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_only_s/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_only_s/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_only_p':
                     from sfv2_networks import sfv2_UNet_only_p
                     network = sfv2_UNet_only_p(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_only_p/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_only_p/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)
                 elif method == 'rz_sb_mar_sfv2_L1L2_loss_DIODE_HRWSI':
                     from sfv2_networks import sfv2_UNet
                     network = sfv2_UNet(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_L1L2_loss_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_L1L2_loss_DIODE_HRWSI/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)  
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_no_blur':
                     from sfv2_networks import sfv2_UNet
                     network = sfv2_UNet(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_no_blur/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_no_blur/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True)
                 elif method == 'rz_sb_mar_sfv2_DIODE_HRWSI_2':
                     from sfv2_networks import sfv2_UNet
                     network = sfv2_UNet(rezero=args.ReZero)  
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_sfv2_DIODE_HRWSI_2/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_sfv2_DIODE_HRWSI_2/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_CFormer_DIODE_HRWSI_2' or method == 'rz_sb_mar_CFormer_DIODE_HRWSI':
                     from sfv2_networks import CFormer_DIODE_HRWSI
                     network = CFormer_DIODE_HRWSI()
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_CFormer_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_CFormer_DIODE_HRWSI/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_NLSPN_DIODE_HRWSI_60' or method == 'rz_sb_mar_NLSPN_DIODE_HRWSI':
                     from sfv2_networks import NLSPN_DIODE_HRWSI
                     network = NLSPN_DIODE_HRWSI()
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_NLSPN_DIODE_HRWSI_60/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_NLSPN_DIODE_HRWSI_60/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_g2_DIODE_HRWSI':
                     from sfv2_networks import g2_UNet
                     network = g2_UNet()
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_g2_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_g2_DIODE_HRWSI/models/epoch_60.pth'
                     network = network.cuda()
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 if method == 'rz_sb_mar_G2_Mono':
@@ -703,7 +761,7 @@ def depth_inference():
                     from sfv2_networks import PEnet_retrain
                     network = PEnet_retrain(rezero=True)
                     network = network.cuda()
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_PEnet_DIODE_HRWSI/models/redc_epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_PEnet_DIODE_HRWSI/models/redc_epoch_60.pth'
                 elif method == 'rz_sb_mar_ReDC':
                     # PEnet
                     from src.baselines.ReDC.redc import ReDC
@@ -716,7 +774,7 @@ def depth_inference():
                     from sfv2_networks import ReDC_retrain
                     network = ReDC_retrain(rezero=True)
                     network = network.cuda()
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_redc_DIODE_HRWSI/models/redc_epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_redc_DIODE_HRWSI/models/redc_epoch_60.pth'
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_SemAttNet':
                     from src.baselines.SemAttNet.model import A_CSPN_plus_plus
@@ -747,7 +805,7 @@ def depth_inference():
                     from sfv2_networks import TWISE_retrain
                     network = TWISE_retrain(rezero=True)
                     network = network.cuda()
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_TWISE_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_TWISE_DIODE_HRWSI/models/epoch_60.pth'
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_GuideNet':
                     # GuideNet
@@ -766,7 +824,7 @@ def depth_inference():
                     from sfv2_networks import GuideNet_retrain
                     network = GuideNet_retrain(rezero=True)
                     network = network.cuda()
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_GuideNet_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_GuideNet_DIODE_HRWSI/models/epoch_60.pth'
                 elif method == 'rz_sb_mar_NLSPN_KITTI':
                     # NLSPN
                     from src.baselines.NLSPN.src.model.nlspnmodel import NLSPNModel
@@ -789,7 +847,7 @@ def depth_inference():
                     from sfv2_networks import SDCM_retrain
                     network = SDCM_retrain(rezero=True)
                     network = network.cuda()
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_SDCM_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_SDCM_DIODE_HRWSI/models/epoch_60.pth'
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_MDAnet':
                     # MDAnet
@@ -803,7 +861,7 @@ def depth_inference():
                     from sfv2_networks import MDAnet_retrain
                     network = MDAnet_retrain(rezero=True)
                     network = network.cuda()
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_MDAnet_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_MDAnet_DIODE_HRWSI/models/epoch_60.pth'
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_EMDC':
                     # EMDC
@@ -817,7 +875,7 @@ def depth_inference():
                     from sfv2_networks import EMDC_retrain
                     network = EMDC_retrain(rezero=True)
                     network = network.cuda()
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_emdc_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_emdc_DIODE_HRWSI/models/epoch_60.pth'
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
                 elif method == 'rz_sb_mar_LRRU':
                     #  LRRU
@@ -837,8 +895,17 @@ def depth_inference():
                     from sfv2_networks import LRRU_retrain
                     network = LRRU_retrain(rezero=True)
                     network = network.cuda()
-                    model_dir = '/data1/Chenbingyuan/result_g2/_rz_sb_mar_LRRU_DIODE_HRWSI/models/epoch_60.pth'
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/results/_rz_sb_mar_LRRU_DIODE_HRWSI/models/epoch_60.pth'
                     network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
+
+                elif method == 'rz_sb_mar_BPnet':
+                    from src.baselines.BPnet.models.BPNet import Net as BPnetModel
+                    network = BPnetModel()
+                    network = network.cuda()
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/src/baselines/BPnet/BP_KITTI/result_ema.pth'
+                    cp = torch.load(model_dir, map_location='cuda:0')
+                    network.load_state_dict(cp['net'], strict=True)
+
                 for mode in mode_list:
                     # 0-100
                     for pro in pro_dict[mode]:
@@ -869,21 +936,33 @@ if __name__ == "__main__":
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True
 
-    rgbd_dir = ['KITTI','nyu', 'redweb','ETH3D','Ibims', 'VKITTI','Matterport3D', 'UnrealCV']
-    # rgbd_dir = ['redweb']
-    
+    # rgbd_dir = ['KITTI','nyu', 'redweb','ETH3D','Ibims', 'VKITTI','Matterport3D', 'UnrealCV']
+    # rgbd_dir = ['ETH3D','Ibims', 'VKITTI','Matterport3D', 'UnrealCV']
+    rgbd_dir = ['KITTI']
     dataset_list = copy.deepcopy(rgbd_dir)
     for i,dir in enumerate(rgbd_dir):
         rgbd_dir[i] = '/data1/Chenbingyuan/Depth-Completion/g2_dataset/'+dir+'/val'
 
     mode_list = [ 'result']
 
-    method_list = ['rz_sb_mar_JARRN_full_05line_05point']
+    # method_list = ['rz_sb_mar_JARRN_full_05line_05point']
+    # method_list = ['rz_sb_mar_BPnet']
+    # method_list = ['rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI']
+    # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_LSM']
+    # method_list = ['rz_sb_mar_SDCM','rz_sb_mar_PEnet','rz_sb_mar_ReDC','rz_sb_mar_CFormer_KITTI', 'rz_sb_mar_EMDC', 
+    #                'rz_sb_mar_NLSPN_KITTI','rz_sb_mar_TWISE',] # completionformer 一个环境就可以解决
+    # method_list = ['rz_sb_mar_MDAnet'] # torch1.7
+    # method_list = ['rz_sb_mar_LRRU'] # LRRU_new
+    method_list = ['rz_sb_mar_GuideNet'] # cuda121
+    # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_large'] 
+    # method_list = ['rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI_2']
+    # 
 
     epoch_list = [60]
     crop = False
 
     pro_dict = {'result':[0.01,0.1,0.2,0.5,0.7, 1.04, 1.016, 1.064,1.08,1.032, 1.0128]}
+    # pro_dict = {'result': [1.04]}
 
     current_time = datetime.datetime.now()
     formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")

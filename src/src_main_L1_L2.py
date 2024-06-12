@@ -8,7 +8,7 @@ import torch
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
 from torch.optim.lr_scheduler import MultiStepLR
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel as DDP
 from typing import Dict, Tuple
@@ -17,6 +17,8 @@ from .utils import save_img, DataGenerator, min_max_norm, StandardizeData
 from .data_tools import get_dataloader
 from .losses import (
     WeightedDataLoss,
+    WeightedDataLossL2,
+
     WeightedMSGradLoss,
     MaskedProbExpLoss,
 )
@@ -32,10 +34,7 @@ class AbsRel_depth:
             rank: torch.device,
     ) -> None:
         self.network = network.to(rank)
-        # if rank == 0:
-        #     print(f"Network: {self.network}\n")
-        # self.network = torch.compile(self.network)
-        
+        # print(network)
     def optimize_net(
             self,
             rgb: Tensor,
@@ -48,7 +47,28 @@ class AbsRel_depth:
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
 
         optimizer.zero_grad()
-        with autocast():
+        # with autocast():
+        #     # loss in absolute domain
+        #     reg_function = WeightedDataLoss()
+        #     # depth, s, f, prob, dense_out = self.network(rgb, point_map, hole_tuple[1])
+        #     depth, s, f, prob = self.network(rgb, point_map, hole_tuple[1])
+        #     loss_adepth = reg_function(depth, gt, hole_tuple[1])
+
+        #     # loss in relative domain
+        #     sta_tool = StandardizeData(mode=args.mode)
+        #     sta_depth, sta_gt = sta_tool(depth, gt, hole_tuple[0])
+        #     loss_rdepth = reg_function(sta_depth, sta_gt, hole_tuple[0])
+
+        #     if args.msgrad:
+        #         grad_function = WeightedMSGradLoss(sobel=args.sobel)
+        #         loss_rgrad = grad_function(sta_depth, sta_gt, hole_tuple[0])
+        #         loss = loss_adepth + loss_rdepth + 0.5 * loss_rgrad
+        #     else:
+        #         loss = loss_adepth + loss_rdepth
+        #         loss_rgrad = torch.tensor(0.)
+        
+        
+        with autocast(enabled=False):  # L1 L2 loss
             # loss in absolute domain
             reg_function = WeightedDataLoss()
             # depth, s, f, prob, dense_out = self.network(rgb, point_map, hole_tuple[1])
@@ -56,30 +76,19 @@ class AbsRel_depth:
             loss_adepth = reg_function(depth, gt, hole_tuple[1])
 
             # loss in relative domain
-            sta_tool = StandardizeData(mode=args.mode)
-            sta_depth, sta_gt = sta_tool(depth, gt, hole_tuple[0])
-            loss_rdepth = reg_function(sta_depth, sta_gt, hole_tuple[0])
+            reg_function = WeightedDataLossL2()
+            loss_rdepth = reg_function(depth, gt, hole_tuple[1])
 
-            # loss in ProbabilisticNCNNs
-            # reg_function = MaskedProbExpLoss()
-            # loss_exp_prob = reg_function(dense_out, gt)
-            if args.msgrad:
-                grad_function = WeightedMSGradLoss(sobel=args.sobel)
-                loss_rgrad = grad_function(sta_depth, sta_gt, hole_tuple[0])
-                loss = loss_adepth + loss_rdepth + 0.5 * loss_rgrad
-            else:
-                loss = loss_adepth + loss_rdepth
-                loss_rgrad = torch.tensor(0.)
-            # loss = loss + 0.05 * loss_exp_prob
+            loss = 0.5*loss_adepth + 0.5*loss_rdepth
+            
+            loss_rgrad = loss_rdepth
         scaler.scale(loss).backward()
         scaler.step(optimizer)
         scaler.update()
+        self.loss = loss
 
-        # loss_gen.backward()
-        # optimizer.step()
-
-        # return loss_adepth.item(), loss_rdepth.item(), loss_rgrad.item(), loss_exp_prob.item(), depth, s, f, prob, dense_out
         return loss_adepth.item(), loss_rdepth.item(), loss_rgrad.item(), depth, s, f, prob
+
     def feedback_module(
             self,
             elapsed: str,
@@ -88,7 +97,7 @@ class AbsRel_depth:
             loss_adepth: Tensor,
             loss_rdepth: Tensor,
             loss_rgrad: Tensor,
-            summary: SummaryWriter,
+            # summary: SummaryWriter,
             global_step: int,
     ) -> None:
         # print(
@@ -98,16 +107,17 @@ class AbsRel_depth:
         #     )
         # )
 
-        # log loss
-        summary.add_scalar(
-            "loss/loss_abs", loss_adepth, global_step=global_step
-        )
-        summary.add_scalar(
-            "loss/loss_rel", loss_rdepth, global_step=global_step
-        )
-        summary.add_scalar(
-            "loss/loss_grad", loss_rgrad, global_step=global_step
-        )
+        # # log loss
+        # summary.add_scalar(
+        #     "loss/loss_abs", loss_adepth, global_step=global_step
+        # )
+        # summary.add_scalar(
+        #     "loss/loss_rel", loss_rdepth, global_step=global_step
+        # )
+        # summary.add_scalar(
+        #     "loss/loss_grad", loss_rgrad, global_step=global_step
+        # )
+        pass
 
     @staticmethod
     def save_imgs(
@@ -163,6 +173,11 @@ class AbsRel_depth:
     ):
         # train mode
         self.network.train()
+        # # Use DistributedDataParallel:
+        # self.network = DDP(self.network, device_ids=[rank])
+        # self.network = torch.c                                                                                                                                                            ompile(self.network)
+
+        self.network = DDP(self.network, device_ids=[rank], find_unused_parameters=False)
         # create optimizer
         optimizer = torch.optim.Adam(
             [{
@@ -175,22 +190,31 @@ class AbsRel_depth:
         scaler = GradScaler()
 
         start_epoch = 0
-        
+
         # resume train
         if checkpoint is not None:
+
             start_epoch = checkpoint['epoch']
-            self.network.load_state_dict(checkpoint['network_state_dict'])
+            print(f'Done load start_epoch')
+            self.network.module.load_state_dict(checkpoint['network_state_dict'])
+            print('Done load network.load_state_dict')
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            print('Done load optimizer.load_state_dict')
             scaler.load_state_dict(checkpoint['scaler_state_dict'])
+            print('Done load scaler.load_state_dict')
 
             # release memory of checkpoint
             checkpoint.clear()
+            print('release memory checkpoint')
             del checkpoint
+            # 修改学习率
+            # for param_group in optimizer.param_groups:
+            #     param_group['lr'] = 0.00005
 
         # learning rate scheduler
         scheduler = MultiStepLR(optimizer, milestones=[20, 40], gamma=0.5, last_epoch=(start_epoch - 1))
-        # Use DistributedDataParallel:
-        self.network = DDP(self.network, device_ids=[rank], static_graph=True)
+        
+        
 
         # verbose stuff
         if rank == 0:
@@ -200,7 +224,7 @@ class AbsRel_depth:
             log_dir.mkdir(parents=True, exist_ok=True)
 
             # tensorboard summarywriter
-            summary = SummaryWriter(str(log_dir / "tensorboard"))
+            # summary = SummaryWriter(str(log_dir / "tensorboard"))
             # create a global time counter
             global_time = time.time()
             print("Starting the training process ... ")
@@ -226,9 +250,8 @@ class AbsRel_depth:
             if rank == 0:
                 start = timeit.default_timer()  # record time at the start of epoch
                 print(f"\nEpoch: [{epoch}/{args.epochs}]")
-
-            for (i, all_data) in tqdm(enumerate(zip(rgbgph_data, hole_data), start=1), desc='Batch', total=iteration_num):
-            # for (i, all_data) in enumerate(zip(rgbgph_data, hole_data), start=1):
+            iterator = tqdm(enumerate(zip(rgbgph_data, hole_data), start=1), desc='Batch', total=iteration_num) if rank == 0 else enumerate(zip(rgbgph_data, hole_data), start=1)
+            for (i, all_data) in iterator:
                     
                 # warm up in the 1st epoch
                 if epoch == 1:
@@ -241,8 +264,7 @@ class AbsRel_depth:
                 rgb, gt, point_map, hole_tuple = train_data.generate_data(all_data)
                 dir = str(args.save_dir)
                 # optimizing
-                # loss_adepth, loss_rdepth, loss_rgrad, loss_exp_prob, depth, s, f, prob, dense_out = self.optimize_net(
-                #     rgb, gt, point_map, hole_tuple, optimizer, scaler, args)
+                
                 loss_adepth, loss_rdepth, loss_rgrad, depth, s, f, prob = self.optimize_net(
                     rgb, gt, point_map, hole_tuple, optimizer, scaler, args)
                 global_step += 1
@@ -265,24 +287,27 @@ class AbsRel_depth:
 
                             # log and print
                             self.feedback_module(
-                                elapsed, i, iteration_num, loss_adepth, loss_rdepth, loss_rgrad, summary, global_step
+                                elapsed, i, iteration_num, loss_adepth, loss_rdepth, loss_rgrad, global_step
                             )
                             # save intermediate results
                             # self.save_imgs(rgb, point_map, depth, gt, s, f, prob, dense_out, log_dir, epoch, i)
                             self.save_imgs(rgb, point_map, depth, gt, s, f, prob, log_dir, epoch, i)
-                if i % 1 == 0:
-                    total_dict[f'Epoch_{epoch}'][f'batch_{i+1}']={}
-                    total_dict[f'Epoch_{epoch}'][f'batch_{i+1}']['loss_adepth'] = loss_adepth
-                    total_dict[f'Epoch_{epoch}'][f'batch_{i+1}']['loss_rdepth'] = loss_rdepth
-                    total_dict[f'Epoch_{epoch}'][f'batch_{i+1}']['loss_rgrad'] = loss_rgrad
-                    # total_dict[f'Epoch_{epoch}'][f'batch_{i+1}']['loss_exp_prob'] = loss_exp_prob
+            if rank == 0:
+                total_dict[f'Epoch_{epoch}']={}
+                total_dict[f'Epoch_{epoch}']['loss_adepth'] = loss_adepth
+                total_dict[f'Epoch_{epoch}']['loss_rdepth'] = loss_rdepth
+                total_dict[f'Epoch_{epoch}']['loss_rgrad'] = loss_rgrad
+                # total_dict[f'Epoch_{epoch}'][f'batch_{i+1}']['loss_exp_prob'] = loss_exp_prob
                 
             # learning rate decay
             scheduler.step()
+            
             if rank == 0:
                 stop = timeit.default_timer()
-                print(f"Time taken for epoch: {(stop - start)/60:.3f} mins")
-
+                
+                print(f"Time: {(stop - start)/60:.3f} min.")
+                current_time = datetime.datetime.now()
+                formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
                 # checkpoint
                 if (
                         epoch % checkpoint_factor == 0
@@ -290,11 +315,11 @@ class AbsRel_depth:
                         or epoch == args.epochs
                         or epoch % 10 == 0
                 ):
-                    model_dir =  args.save_dir / "models"
                     save_file = model_dir / f"epoch_{epoch}.pth"
                     torch.save({
                         'epoch': epoch,
                         'network_state_dict': self.network.module.state_dict(),
+                        # 'network_state_dict': self.network.state_dict(),
                         'optimizer_state_dict': optimizer.state_dict(),
                         'scaler_state_dict': scaler.state_dict(),
                     }, save_file)
@@ -302,4 +327,8 @@ class AbsRel_depth:
             with open(str(args.save_dir)+"/loss.json",'w') as f:
                 f.write(json.dumps(total_dict, ensure_ascii=False, indent=4, separators=(',', ':')))
         if rank == 0:
-            print("Training completed ...")
+            print(f"Training completed ...   model saved in {args.save_dir}")
+            current_time = datetime.datetime.now()
+            formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+            print("End Time:", formatted_time)
+

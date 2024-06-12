@@ -136,7 +136,7 @@ def mobilenet_v2(pretrained=True, width_mult=1):
     model = MobileNetV2(width_mult=width_mult)
 
     if pretrained:
-        state_dict = torch.load('/data/4TSSD/cby/Depth-Completion/src/baselines/EMDC/models/pretrained/mobilenetv2.pth.tar', map_location='cpu')
+        state_dict = torch.load('/data1/Chenbingyuan/Depth-Completion/src/baselines/EMDC/models/pretrained/mobilenetv2.pth.tar', map_location='cpu')
         weight = state_dict['features.0.0.weight']
         new_weight = weight.mean(dim=1, keepdim=True).repeat(1, 4, 1, 1)
         state_dict['features.0.0.weight'] = new_weight

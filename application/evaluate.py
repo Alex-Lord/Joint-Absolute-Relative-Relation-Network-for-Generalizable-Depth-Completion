@@ -110,7 +110,7 @@ class DepthDatasetEvaluation(object):
                 print(f'Now dealing with dataset:{dataset}')
                 for mode in mode_list:
                     gt_path = os.path.join('/data1/Chenbingyuan/Depth-Completion/g2_dataset/', dataset, 'val')  # nyu需要加入val后缀
-                    log_path = os.path.join('/data1/Chenbingyuan/Depth-Completion/g2_dataset/', dataset, mode, 'logs_ablation_all.txt')
+                    log_path = os.path.join('/data1/Chenbingyuan/Depth-Completion/g2_dataset/', dataset, mode, 'logs_ablation.txt')
                     # 0-100
                     for pro in pro_dict[mode]:
                         print(method + '_' + dataset + '_' + str(pro))
@@ -153,7 +153,7 @@ class DepthDatasetEvaluation(object):
             for dataset in dataset_list:
                 for mode in value['mode_list']:
                     gt_path = os.path.join('../Test_datasets', dataset, 'gt')
-                    log_path = os.path.join('../Test_datasets', dataset, mode, 'logs_baseline_all.txt')
+                    log_path = os.path.join('../Test_datasets', dataset, mode, 'logs_baseline.txt')
                     for pro in value['pro_list']:
                         print(method + '_' + dataset + '_' + str(pro))
                         depth_path = os.path.join('../Test_datasets', dataset, mode, method + '_' + str(pro))
@@ -226,7 +226,7 @@ class DepthDatasetEvaluation(object):
                 print(f'Now dealing with dataset:{dataset}')
                 for mode in mode_list:
                     gt_path = os.path.join('/data1/Chenbingyuan/Depth-Completion/g2_dataset/', dataset, 'val')  # nyu需要加入val
-                    log_path = os.path.join('/data1/Chenbingyuan/Depth-Completion/g2_dataset/', dataset, mode, 'logs_absrel_all.txt')
+                    log_path = os.path.join('/data1/Chenbingyuan/Depth-Completion/g2_dataset/', dataset, mode, 'logs_absrel.txt')
 
                     # 0-100
                     for pro in pro_dict[mode]:
@@ -255,8 +255,8 @@ class DepthDatasetEvaluation(object):
 
 def delete_txt_file(dataset_list):
     for data_set in dataset_list:
-        txt_file_1 = '/data1/Chenbingyuan/Depth-Completion/g2_dataset/'+data_set+'/result/'+ 'logs_ablation_all.txt'
-        txt_file_2 = '/data1/Chenbingyuan/Depth-Completion/g2_dataset/'+data_set+'/result/'+ 'logs_absrel_all.txt'
+        txt_file_1 = '/data1/Chenbingyuan/Depth-Completion/g2_dataset/'+data_set+'/result/'+ 'logs_ablation.txt'
+        txt_file_2 = '/data1/Chenbingyuan/Depth-Completion/g2_dataset/'+data_set+'/result/'+ 'logs_absrel.txt'
         # 检查文件是否存在
         # print(txt_file_1)
         if os.path.exists(txt_file_1):
@@ -279,8 +279,9 @@ if __name__ == '__main__':
     # mode_list = ['result_very_sparse_same_seg', 'result_very_sparse_differ_seg']
     # dataset_list = ['KITTI','nyu', 'redweb','ETH3D','Ibims', 'VKITTI']
     # dataset_list = ['Matterport3D', 'UnrealCV']
-    # dataset_list = ['KITTI','nyu','redweb','ETH3D','Ibims', 'VKITTI', 'Matterport3D', 'UnrealCV']
-    dataset_list = ['nyu','redweb','ETH3D','Ibims', 'VKITTI', 'Matterport3D', 'UnrealCV']
+    dataset_list = ['KITTI','nyu','redweb','ETH3D','Ibims', 'VKITTI', 'Matterport3D', 'UnrealCV']
+    # dataset_list = ['nyu']
+    # dataset_list = ['nyu','redweb','ETH3D','Ibims', 'VKITTI', 'Matterport3D', 'UnrealCV']
 
     # method_list = ['rz_sb_mar_CFormer_DIODE_HRWSI','rz_sb_mar_CFormer_KITTI','rz_sb_mar_EMDC',
     #                'rz_sb_mar_LRRU','rz_sb_mar_NLSPN_DIODE_HRWSI_60','rz_sb_mar_SDCM',
@@ -325,28 +326,30 @@ if __name__ == '__main__':
     # ]
     
     # 全部
-    method_list = [
-        'rz_sb_mar_GuideNet_DIODE_HRWSI', 
-        'rz_sb_mar_MDAnet_DIODE_HRWSI', 
-        'rz_sb_mar_LRRU_DIODE_HRWSI', 
-        'rz_sb_mar_EMDC_DIODE_HRWSI', 
-        'rz_sb_mar_TWISE_DIODE_HRWSI', 
-        'rz_sb_mar_SDCM_DIODE_HRWSI', 
-        'rz_sb_mar_PEnet_DIODE_HRWSI', 
-        'rz_sb_mar_ReDC_DIODE_HRWSI',
-        'rz_sb_mar_CFormer_DIODE_HRWSI',
-        'rz_sb_mar_NLSPN_DIODE_HRWSI_60',
-        'rz_sb_mar_g2_DIODE_HRWSI',
-        'rz_sb_mar_sfv2_DIODE_HRWSI',
-        'rz_sb_mar_CFormer_DIODE_HRWSI','rz_sb_mar_CFormer_KITTI','rz_sb_mar_EMDC',
-        'rz_sb_mar_LRRU','rz_sb_mar_NLSPN_DIODE_HRWSI_60','rz_sb_mar_SDCM',
-        'rz_sb_mar_GuideNet','rz_sb_mar_ReDC', 'rz_sb_mar_MDAnet',
-        'rz_sb_mar_NLSPN_KITTI','rz_sb_mar_PEnet','rz_sb_mar_G2_Mono', 'rz_sb_mar_JARRN_full_05line_05point', 'rz_sb_mar_JARRN_mixed_05point_05line',
-        'rz_sb_mar_SDCM','rz_sb_mar_TWISE','rz_sb_mar_g2_DIODE_HRWSI','rz_sb_mar_sfv2_DIODE_HRWSI',
-        'rz_sb_mar_sfv2_DIODE_HRWSI_no_f', 'rz_sb_mar_sfv2_DIODE_HRWSI_no_s',
-        'rz_sb_mar_sfv2_DIODE_HRWSI_no_p','rz_sb_mar_sfv2_DIODE_HRWSI_only_p', 'rz_sb_mar_sfv2_DIODE_HRWSI_only_s',
-        'rz_sb_mar_sfv2_DIODE_HRWSI_only_f','rz_sb_mar_sfv2_L1L2_loss_DIODE_HRWSI', 'rz_sb_mar_sfv2_L1L2_loss_DIODE_HRWSI',
-    ]
+    # method_list = [
+    #     'rz_sb_mar_GuideNet_DIODE_HRWSI', 
+    #     'rz_sb_mar_MDAnet_DIODE_HRWSI', 
+    #     'rz_sb_mar_LRRU_DIODE_HRWSI', 
+    #     'rz_sb_mar_EMDC_DIODE_HRWSI', 
+    #     'rz_sb_mar_TWISE_DIODE_HRWSI', 
+    #     'rz_sb_mar_SDCM_DIODE_HRWSI', 
+    #     'rz_sb_mar_PEnet_DIODE_HRWSI', 
+    #     'rz_sb_mar_ReDC_DIODE_HRWSI',
+    #     'rz_sb_mar_g2_DIODE_HRWSI',
+    #     'rz_sb_mar_sfv2_DIODE_HRWSI',
+    #     'rz_sb_mar_CFormer_DIODE_HRWSI','rz_sb_mar_CFormer_KITTI','rz_sb_mar_EMDC', 'rz_sb_mar_BPnet',
+    #     'rz_sb_mar_LRRU','rz_sb_mar_NLSPN_DIODE_HRWSI_60',
+    
+    #     'rz_sb_mar_GuideNet','rz_sb_mar_ReDC', 'rz_sb_mar_MDAnet',
+    #     'rz_sb_mar_NLSPN_KITTI','rz_sb_mar_PEnet','rz_sb_mar_G2_Mono', 'rz_sb_mar_JARRN_full_05line_05point', 'rz_sb_mar_JARRN_mixed_05point_05line',
+    #     'rz_sb_mar_SDCM','rz_sb_mar_TWISE',
+    #     'rz_sb_mar_sfv2_DIODE_HRWSI_no_f', 'rz_sb_mar_sfv2_DIODE_HRWSI_no_s',
+    #     'rz_sb_mar_sfv2_DIODE_HRWSI_no_p','rz_sb_mar_sfv2_DIODE_HRWSI_only_p', 'rz_sb_mar_sfv2_DIODE_HRWSI_only_s',
+    #     'rz_sb_mar_sfv2_DIODE_HRWSI_only_f'
+    # ]
+    # method_list = ['rz_sb_mar_BPnet', 'rz_sb_mar_sfv2_DIODE_HRWSI', 'rz_sb_mar_JARRN_mixed_05point_05line']
+    # method_list = ['rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI']
+    method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_LSM']
     # method_list = ['rz_sb_mar_CFormer_KITTI',
     #     'rz_sb_mar_EMDC',
     #     'rz_sb_mar_LRRU',
