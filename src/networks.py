@@ -165,54 +165,73 @@ sf_chan = [512, 512, 512, 512, 256, 128, 64]
 #         output = self.sfmap_block(x2)
 #         return output,output,output,output
 
-# 直接将参数量翻倍_2
-class UNet(Module):
-    def __init__(self, rgb_x_layer_num: int = 7, rezero: bool = False):
-        super(UNet, self).__init__()
-        # rgb+x channel
-        layer = FirstModule(rgb_x_chan[1], rgb_x_chan[0], rezero)
-        for i in range(2, rgb_x_layer_num):
-            layer = UNetModule(layer, rgb_x_chan[i], rgb_x_chan[i - 1], rezero)
+# # 直接将参数量翻倍_2
+# class UNet(Module):
+#     def __init__(self, rgb_x_layer_num: int = 7, rezero: bool = False):
+#         super(UNet, self).__init__()
+#         # rgb+x channel
+#         layer = FirstModule(rgb_x_chan[1], rgb_x_chan[0], rezero)
+#         for i in range(2, rgb_x_layer_num):
+#             layer = UNetModule(layer, rgb_x_chan[i], rgb_x_chan[i - 1], rezero)
 
-        self.rgb_x_block = Sequential(
-            Conv2d(5, rgb_x_chan[i], 3, 1, 1),
-            StackedBottleNeck(rgb_x_chan[i], rgb_x_chan[i], rezero),
-            layer,
-            StackedBottleNeck(2 * rgb_x_chan[i], rgb_x_chan[i], rezero),
-            Conv2d(rgb_x_chan[i], 1, 3, 1, 1),
-        )
+#         self.rgb_x_block = Sequential(
+#             Conv2d(5, rgb_x_chan[i], 3, 1, 1),
+#             StackedBottleNeck(rgb_x_chan[i], rgb_x_chan[i], rezero),
+#             layer,
+#             StackedBottleNeck(2 * rgb_x_chan[i], rgb_x_chan[i], rezero),
+#             Conv2d(rgb_x_chan[i], 1, 3, 1, 1),
+#         )
         
-        # sfmap channel
-        sf_layer = FirstModule(sf_chan[1], sf_chan[0], rezero)
-        for i in range(2, rgb_x_layer_num):
-            sf_layer = UNetModule(sf_layer, sf_chan[i], sf_chan[i - 1], rezero)
+#         # sfmap channel
+#         sf_layer = FirstModule(sf_chan[1], sf_chan[0], rezero)
+#         for i in range(2, rgb_x_layer_num):
+#             sf_layer = UNetModule(sf_layer, sf_chan[i], sf_chan[i - 1], rezero)
 
-        self.sfmap_block = Sequential(
-            Conv2d(1, sf_chan[i], 3, 1, 1),
-            StackedBottleNeck(sf_chan[i], sf_chan[i], rezero),
-            sf_layer,
-            StackedBottleNeck(2 * sf_chan[i], sf_chan[i], rezero),
-            Conv2d(rgb_x_chan[i], 1, 3, 1, 1),  #直接将参数量翻倍
-        )
+#         self.sfmap_block = Sequential(
+#             Conv2d(1, sf_chan[i], 3, 1, 1),
+#             StackedBottleNeck(sf_chan[i], sf_chan[i], rezero),
+#             sf_layer,
+#             StackedBottleNeck(2 * sf_chan[i], sf_chan[i], rezero),
+#             Conv2d(rgb_x_chan[i], 1, 3, 1, 1),  #直接将参数量翻倍
+#         )
         
-        # self.softmax = nn.Softmax(dim=1)
+#         # self.softmax = nn.Softmax(dim=1)
         
-        # initializing
-        for m in self.modules():
-            if isinstance(m, Conv2d):
-                init.kaiming_normal_(m.weight, a=0.2)
-                init.zeros_(m.bias)
+#         # initializing
+#         for m in self.modules():
+#             if isinstance(m, Conv2d):
+#                 init.kaiming_normal_(m.weight, a=0.2)
+#                 init.zeros_(m.bias)
         
  
-    @autocast()
-    def forward(
-        self,
+#     @autocast()
+#     def forward(
+#         self,
+#         rgb: Tensor,
+#         point: Tensor,
+#         hole_point: Tensor, 
+#     ) -> Tensor:
+
+#         x1 = torch.cat((rgb, point, hole_point), dim=1)
+#         depth = self.rgb_x_block(x1)
+#         output = self.sfmap_block(depth)
+#         return output,output,output,output
+
+
+# redc
+class Unet(Module):
+    def __init__(self,rezero: bool = True):
+        super(Unet, self).__init__()
+        from baselines.ReDC.redc import ReDC
+        from baselines.ReDC.config import args as args_ReDC
+        self.network = ReDC(args_ReDC) 
+        
+    def forward(self,
         rgb: Tensor,
         point: Tensor,
-        hole_point: Tensor, 
-    ) -> Tensor:
-
-        x1 = torch.cat((rgb, point, hole_point), dim=1)
-        depth = self.rgb_x_block(x1)
-        output = self.sfmap_block(depth)
-        return output,output,output,output
+        hole_point: Tensor, ):
+        fx, fy, cx, cy = 582.6244, 582.6910, 313.0447, 238.4438
+        K = torch.Tensor([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
+        K = K.unsqueeze(0)
+        depth = self.network(rgb.cuda(), point.cuda(), K.cuda())  
+        return depth,depth,depth,depth

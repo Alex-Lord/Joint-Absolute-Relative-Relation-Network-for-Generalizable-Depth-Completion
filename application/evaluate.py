@@ -279,8 +279,8 @@ if __name__ == '__main__':
     # mode_list = ['result_very_sparse_same_seg', 'result_very_sparse_differ_seg']
     # dataset_list = ['KITTI','nyu', 'redweb','ETH3D','Ibims', 'VKITTI']
     # dataset_list = ['Matterport3D', 'UnrealCV']
-    dataset_list = ['KITTI','nyu','redweb','ETH3D','Ibims', 'VKITTI', 'Matterport3D', 'UnrealCV']
-    # dataset_list = ['nyu']
+    # dataset_list = ['KITTI','nyu','redweb','ETH3D','Ibims', 'VKITTI', 'Matterport3D', 'UnrealCV']
+    dataset_list = ['KITTI']
     # dataset_list = ['nyu','redweb','ETH3D','Ibims', 'VKITTI', 'Matterport3D', 'UnrealCV']
 
     # method_list = ['rz_sb_mar_CFormer_DIODE_HRWSI','rz_sb_mar_CFormer_KITTI','rz_sb_mar_EMDC',
@@ -349,7 +349,10 @@ if __name__ == '__main__':
     # ]
     # method_list = ['rz_sb_mar_BPnet', 'rz_sb_mar_sfv2_DIODE_HRWSI', 'rz_sb_mar_JARRN_mixed_05point_05line']
     # method_list = ['rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI']
-    method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_LSM']
+    # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_LSM']
+    # method_list = ['rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI_2', 'rz_sb_mar_SDCM','rz_sb_mar_PEnet','rz_sb_mar_ReDC','rz_sb_mar_CFormer_KITTI', 'rz_sb_mar_EMDC', 
+    #                'rz_sb_mar_NLSPN_KITTI','rz_sb_mar_TWISE','rz_sb_mar_MDAnet', 'rz_sb_mar_LRRU', 'rz_sb_mar_GuideNet']
+    method_list = ['rz_sb_mar_LRRU']
     # method_list = ['rz_sb_mar_CFormer_KITTI',
     #     'rz_sb_mar_EMDC',
     #     'rz_sb_mar_LRRU',

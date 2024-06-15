@@ -1111,7 +1111,7 @@ class sfv2_UNet_LSM(Module):
         x1 = torch.cat((rgb, point, hole_point), dim=1)
         depth = self.rgb_x_block(x1)
         depth = depth_to_real(depth, point, hole_point)
-        depth = torch.clamp(depth, 0, 1)
+        # depth = torch.clamp(depth, 0, 1)
         return depth,depth,depth,depth
     
 

@@ -1,6 +1,6 @@
 import argparse
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]='1,2,3'
+os.environ["CUDA_VISIBLE_DEVICES"]='0,1,2,3'
 from pathlib import Path
 from src.src_main import AbsRel_depth
 from src.networks import UNet
@@ -197,7 +197,7 @@ def DDP_main(rank, world_size):
             args.save_dir += '_gd'
             
     args.save_dir += '_' + args.mode
-    args.save_dir += '_' + 'test'
+    args.save_dir += '_' + 'ReDC_KITTI'
     args.save_dir = Path(args.save_dir)
     
     # DDP components

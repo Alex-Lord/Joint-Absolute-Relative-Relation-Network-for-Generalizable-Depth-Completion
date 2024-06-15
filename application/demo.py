@@ -11,7 +11,7 @@ import argparse
 from PIL import Image
 from pathlib import Path
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 
 
@@ -23,6 +23,93 @@ from tqdm import tqdm
 import numpy as np
 import glob
 import sys
+
+import torch
+import numpy as np
+import cv2
+from scipy.ndimage import label
+
+
+# def fill_in_fast_tensor(depth_tensor, max_depth=100.0, custom_kernel=DIAMOND_KERNEL_5,
+#                         extrapolate=False, blur_type='bilateral'):
+#     """Fast, in-place depth completion for tensor.
+
+#     Args:
+#         depth_tensor: projected depths tensor with shape [b, c=1, h, w]
+#         max_depth: max depth value for inversion
+#         custom_kernel: kernel to apply initial dilation
+#         extrapolate: whether to extrapolate by extending depths to top of
+#             the frame, and applying a 31x31 full kernel dilation
+#         blur_type:
+#             'bilateral' - preserves local structure (recommended)
+#             'gaussian' - provides lower RMSE
+
+#     Returns:
+#         depth_tensor: dense depth tensor with same shape [b, c=1, h, w]
+#     """
+#     depth_tensor_np = depth_tensor.squeeze(1).cpu().numpy()  # Convert to numpy array with shape [b, h, w]
+
+#     for i in range(depth_tensor_np.shape[0]):  # Iterate over the batch
+#         depth_map = depth_tensor_np[i]
+
+#         valid_pixels = (depth_map > 0.1)
+#         depth_map[valid_pixels] = max_depth - depth_map[valid_pixels]
+
+#         depth_map = cv2.dilate(depth_map, custom_kernel)
+
+#         depth_map = cv2.morphologyEx(depth_map, cv2.MORPH_CLOSE, FULL_KERNEL_5)
+
+#         empty_pixels = (depth_map < 0.1)
+#         dilated = cv2.dilate(depth_map, FULL_KERNEL_7)
+#         depth_map[empty_pixels] = dilated[empty_pixels]
+
+#         if extrapolate:
+#             top_row_pixels = np.argmax(depth_map > 0.1, axis=0)
+#             top_pixel_values = depth_map[top_row_pixels, range(depth_map.shape[1])]
+
+#             for pixel_col_idx in range(depth_map.shape[1]):
+#                 depth_map[0:top_row_pixels[pixel_col_idx], pixel_col_idx] = \
+#                     top_pixel_values[pixel_col_idx]
+
+#         empty_pixels = depth_map < 0.1
+#         dilated = cv2.dilate(depth_map, FULL_KERNEL_31)
+#         depth_map[empty_pixels] = dilated[empty_pixels]
+
+#         depth_map = depth_map.astype('float32')
+#         depth_map = cv2.medianBlur(depth_map, 5)
+#         depth_map = depth_map.astype('float64')
+
+#         if blur_type == 'bilateral':
+#             depth_map = depth_map.astype('float32')
+#             depth_map = cv2.bilateralFilter(depth_map, 5, 1.5, 2.0)
+#             depth_map = depth_map.astype('float64')
+#         elif blur_type == 'gaussian':
+#             valid_pixels = (depth_map > 0.1)
+#             blurred = cv2.GaussianBlur(depth_map, (5, 5), 0)
+#             depth_map[valid_pixels] = blurred[valid_pixels]
+
+#         valid_pixels = (depth_map > 0.1)
+#         depth_map[valid_pixels] = max_depth - depth_map[valid_pixels]
+
+#         mask = (depth_map <= 0.1)
+#         if np.sum(mask) != 0:
+#             labeled_array, num_features = label(mask)
+#             for j in range(num_features):
+#                 index = j + 1
+#                 m = (labeled_array == index)
+#                 m_dilate1 = cv2.dilate(1.0 * m, FULL_KERNEL_7)
+#                 m_dilate2 = cv2.dilate(1.0 * m, FULL_KERNEL_13)
+#                 m_diff = m_dilate2 - m_dilate1
+#                 v = np.mean(depth_map[m_diff > 0])
+#                 depth_map = np.ma.array(depth_map, mask=m_dilate1, fill_value=v)
+#                 depth_map = depth_map.filled()
+#                 depth_map = np.array(depth_map)
+
+#         depth_tensor_np[i] = depth_map
+
+#     depth_tensor_filled = torch.from_numpy(depth_tensor_np).unsqueeze(1).to(depth_tensor.device)
+
+#     return depth_tensor_filled
 
 
 
@@ -82,6 +169,10 @@ def parse_arguments():
 
 
 def pred_and_save(network,rgb, point, hole_point, out_path, network_type, desc):
+    total = sum([param.nelement() for param in network.parameters()])
+    print(network_type)
+    print('  + Number of params: %.2fM' % (total / 1e6))
+    input(f'{network_type}')
     KITTI_factor = 80.
     if 'JARRN_nosfp_direct_2branch_DIODE_HRWSI' == network_type:
         gen_depth,_,_,_ = network(rgb.cuda(), point.cuda(), hole_point.cuda())  
@@ -373,11 +464,14 @@ def pred_and_save(network,rgb, point, hole_point, out_path, network_type, desc):
         depth = np.clip(gen_depth * 255., 0, 255).astype(np.int8)
     elif 'LRRU' in network_type and 'DIODE_HRWSI' not in network_type:            
         # LRRU
+        from LRRU_utilis import fill_in_fast_tensor
         point = point * KITTI_factor #  KITTI
-        gen_depth = network(rgb.cuda(), point.cuda())  
+        fill_depth = fill_in_fast_tensor(point, max_depth=KITTI_factor)
+        gen_depth = network(rgb.cuda(), point.cuda(), fill_depth.cuda())  
         gen_depth = gen_depth['results'][-1]
         gen_depth = gen_depth.squeeze().to('cpu').numpy().astype(np.float32)
         gen_depth = (gen_depth / KITTI_factor)  # KITTI
+        
         depth = np.clip(gen_depth * 255., 0, 255).astype(np.int8)
     elif 'LRRU_DIODE_HRWSI' in network_type:
         gen_depth,_,_,_ = network(rgb.cuda(), point.cuda(), hole_point.cuda())  
@@ -948,14 +1042,15 @@ if __name__ == "__main__":
     # method_list = ['rz_sb_mar_JARRN_full_05line_05point']
     # method_list = ['rz_sb_mar_BPnet']
     # method_list = ['rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI']
-    # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_LSM']
+    method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_LSM']
     # method_list = ['rz_sb_mar_SDCM','rz_sb_mar_PEnet','rz_sb_mar_ReDC','rz_sb_mar_CFormer_KITTI', 'rz_sb_mar_EMDC', 
     #                'rz_sb_mar_NLSPN_KITTI','rz_sb_mar_TWISE',] # completionformer 一个环境就可以解决
     # method_list = ['rz_sb_mar_MDAnet'] # torch1.7
     # method_list = ['rz_sb_mar_LRRU'] # LRRU_new
-    method_list = ['rz_sb_mar_GuideNet'] # cuda121
+    # method_list = ['rz_sb_mar_GuideNet'] # cuda121
     # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_large'] 
     # method_list = ['rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI_2']
+    # method_list = ['rz_sb_mar_TWISE']
     # 
 
     epoch_list = [60]
