@@ -169,10 +169,10 @@ def parse_arguments():
 
 
 def pred_and_save(network,rgb, point, hole_point, out_path, network_type, desc):
-    total = sum([param.nelement() for param in network.parameters()])
-    print(network_type)
-    print('  + Number of params: %.2fM' % (total / 1e6))
-    input(f'{network_type}')
+    # total = sum([param.nelement() for param in network.parameters()])
+    # print(network_type)
+    # print('  + Number of params: %.2fM' % (total / 1e6))
+    # input(f'{network_type}')
     KITTI_factor = 80.
     if 'JARRN_nosfp_direct_2branch_DIODE_HRWSI' == network_type:
         gen_depth,_,_,_ = network(rgb.cuda(), point.cuda(), hole_point.cuda())  

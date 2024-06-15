@@ -352,7 +352,7 @@ if __name__ == '__main__':
     # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_LSM']
     # method_list = ['rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI_2', 'rz_sb_mar_SDCM','rz_sb_mar_PEnet','rz_sb_mar_ReDC','rz_sb_mar_CFormer_KITTI', 'rz_sb_mar_EMDC', 
     #                'rz_sb_mar_NLSPN_KITTI','rz_sb_mar_TWISE','rz_sb_mar_MDAnet', 'rz_sb_mar_LRRU', 'rz_sb_mar_GuideNet']
-    method_list = ['rz_sb_mar_LRRU']
+    method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_LSM']
     # method_list = ['rz_sb_mar_CFormer_KITTI',
     #     'rz_sb_mar_EMDC',
     #     'rz_sb_mar_LRRU',
@@ -370,10 +370,10 @@ if __name__ == '__main__':
     # pro_dict = {'result_very_sparse':[0,1,2,3,10,20,50,100]}
     # pro_dict = {'result': [0.001,0.01,0.1,0.2,0.5,0.7]}
     # pro_dict = {'result': [1.0]}
-    pro_dict = {'result': [0.01,0.1,0.2,0.5,0.7, 1.04, 1.016, 1.064,1.08,1.032, 1.0128]}
+    # pro_dict = {'result': [0.01,0.1,0.2,0.5,0.7, 1.04, 1.016, 1.064,1.08,1.032, 1.0128]}
     # pro_dict = {'result': [0.2]}
     # pro_dict = {'result': [0.1,0.2,0.7]}
-    # pro_dict = {'result': [0.01,0.1,0.2,0.5,0.7]}
+    pro_dict = {'result': [0.01,0.1,0.2,0.5,0.7]}
     # pro_dict = {'result_very_sparse_same_seg':[0,1,2,3,10,20,50,100], 'result_very_sparse_differ_seg':[0,1,2,3,10,20,50,100],}
     # from demo import pro_dict, crop
     # from demo import dataset_list as dataset_list
