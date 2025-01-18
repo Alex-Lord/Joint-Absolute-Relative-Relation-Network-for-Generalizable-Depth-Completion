@@ -11,7 +11,7 @@ import argparse
 from PIL import Image
 from pathlib import Path
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+os.environ["CUDA_VISIBLE_DEVICES"] = '4'
 
 
 
@@ -468,10 +468,17 @@ def pred_and_save(network,rgb, point, hole_point, out_path, network_type, desc):
         depth = np.clip(gen_depth * 255., 0, 255).astype(np.int8)
     elif 'LRRU' in network_type and 'DIODE_HRWSI' not in network_type:            
         # LRRU
-        from LRRU_utilis import fill_in_fast_tensor
+        from LRRU_utilis import fill_in_fast_tensor, outlier_removal
         point = point * KITTI_factor #  KITTI
         fill_depth = fill_in_fast_tensor(point, max_depth=KITTI_factor)
-        gen_depth = network(rgb.cuda(), point.cuda(), fill_depth.cuda())  
+        
+        dep_np = point.numpy().squeeze(0)
+        dep_clear, _ = outlier_removal(dep_np)
+        dep_clear = np.expand_dims(dep_clear, 0)
+        dep_clear_torch = torch.from_numpy(dep_clear)
+        
+        sample = {'dep':point.cuda(), 'rgb':rgb.cuda(), 'ip':fill_depth.cuda(), 'dep_clear':dep_clear_torch.cuda()}
+        gen_depth = network(sample)  
         gen_depth = gen_depth['results'][-1]
         gen_depth = gen_depth.squeeze().to('cpu').numpy().astype(np.float32)
         gen_depth = (gen_depth / KITTI_factor)  # KITTI
@@ -1068,14 +1075,14 @@ if __name__ == "__main__":
     # method_list = ['rz_sb_mar_SDCM','rz_sb_mar_PEnet','rz_sb_mar_ReDC','rz_sb_mar_CFormer_KITTI', 'rz_sb_mar_EMDC', 
     #                'rz_sb_mar_NLSPN_KITTI','rz_sb_mar_TWISE',] # completionformer 一个环境就可以解决
     # method_list = ['rz_sb_mar_MDAnet'] # torch1.7
-    # method_list = ['rz_sb_mar_LRRU'] # LRRU_new
+    method_list = ['rz_sb_mar_LRRU'] # LRRU_new
     # method_list = ['rz_sb_mar_GuideNet'] # cuda121
     # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_large'] 
     # method_list = ['rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI_2']
     # method_list = ['rz_sb_mar_ReDC']
     # method_list = ['rz_sb_mar_JARRN_100LiDAR']
-    method_list = ['rz_sb_mar_JARRN_70LiDAR']
-    method_list = ['rz_sb_mar_JARRN_60LiDAR']
+    # method_list = ['rz_sb_mar_JARRN_70LiDAR']
+    # method_list = ['rz_sb_mar_JARRN_60LiDAR']
     
     # 
 

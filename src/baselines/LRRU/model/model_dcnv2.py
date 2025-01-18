@@ -246,7 +246,7 @@ class Model(nn.Module, ABC):
         self.dep_max = None
         self.kernel_size = args.kernel_size
         self._norm_layer = norm_layer
-        self.preserve_input = False
+        self.preserve_input = True
         bc = args.bc
 
         prob_0_L = (1, self.args.prob)
@@ -309,10 +309,11 @@ class Model(nn.Module, ABC):
         self._initialize_weights()
 
 
-    def forward(self, img, depth, d_clear):
+    def forward(self, sample):
 
-        lidar = depth
-        d_clear = d_clear # fill
+        depth = sample['dep']
+        img, lidar = sample['rgb'], sample['ip']
+        d_clear = sample['dep_clear']
         if self.args.depth_norm:
             bz = lidar.shape[0]
             self.dep_max = torch.max(lidar.view(bz,-1),1, keepdim=False)[0].view(bz,1,1,1)
