@@ -11,7 +11,7 @@ import argparse
 from PIL import Image
 from pathlib import Path
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '4'
+os.environ["CUDA_VISIBLE_DEVICES"] = '6'
 
 
 
@@ -1089,7 +1089,7 @@ if __name__ == "__main__":
     epoch_list = [60]
     crop = False
 
-    pro_dict = {'result':[0.01,0.1,0.2,0.5,0.7, 1.04, 1.016, 1.064,1.08,1.032, 1.0128]}
+    pro_dict = {'result':[1.04, 1.016, 1.064,1.08,1.032, 1.0128,0.01,0.1,0.2,0.5,0.7, ]}
     # pro_dict = {'result': [1.04]}
 
     current_time = datetime.datetime.now()
