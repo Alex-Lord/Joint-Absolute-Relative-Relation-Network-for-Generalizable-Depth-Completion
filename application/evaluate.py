@@ -328,33 +328,33 @@ if __name__ == '__main__':
     # ]
     
     # 全部
-    # method_list = [
-    #     'rz_sb_mar_GuideNet_DIODE_HRWSI', 
-    #     'rz_sb_mar_MDAnet_DIODE_HRWSI', 
-    #     'rz_sb_mar_LRRU_DIODE_HRWSI', 
-    #     'rz_sb_mar_EMDC_DIODE_HRWSI', 
-    #     'rz_sb_mar_TWISE_DIODE_HRWSI', 
-    #     'rz_sb_mar_SDCM_DIODE_HRWSI', 
-    #     'rz_sb_mar_PEnet_DIODE_HRWSI', 
-    #     'rz_sb_mar_ReDC_DIODE_HRWSI',
-    #     'rz_sb_mar_g2_DIODE_HRWSI',
-    #     'rz_sb_mar_sfv2_DIODE_HRWSI',
-    #     'rz_sb_mar_CFormer_DIODE_HRWSI','rz_sb_mar_CFormer_KITTI','rz_sb_mar_EMDC', 'rz_sb_mar_BPnet',
-    #     'rz_sb_mar_LRRU','rz_sb_mar_NLSPN_DIODE_HRWSI_60',
+    method_list = [
+        'rz_sb_mar_GuideNet_DIODE_HRWSI', 
+        'rz_sb_mar_MDAnet_DIODE_HRWSI', 
+        'rz_sb_mar_LRRU_DIODE_HRWSI', 
+        'rz_sb_mar_EMDC_DIODE_HRWSI', 
+        'rz_sb_mar_TWISE_DIODE_HRWSI', 
+        'rz_sb_mar_SDCM_DIODE_HRWSI', 
+        'rz_sb_mar_PEnet_DIODE_HRWSI', 
+        'rz_sb_mar_ReDC_DIODE_HRWSI',
+        'rz_sb_mar_g2_DIODE_HRWSI',
+        'rz_sb_mar_sfv2_DIODE_HRWSI',
+        'rz_sb_mar_CFormer_DIODE_HRWSI','rz_sb_mar_CFormer_KITTI','rz_sb_mar_EMDC', 'rz_sb_mar_BPnet',
+        'rz_sb_mar_LRRU','rz_sb_mar_NLSPN_DIODE_HRWSI_60',
     
-    #     'rz_sb_mar_GuideNet','rz_sb_mar_ReDC', 'rz_sb_mar_MDAnet',
-    #     'rz_sb_mar_NLSPN_KITTI','rz_sb_mar_PEnet','rz_sb_mar_G2_Mono', 'rz_sb_mar_JARRN_full_05line_05point', 'rz_sb_mar_JARRN_mixed_05point_05line',
-    #     'rz_sb_mar_SDCM','rz_sb_mar_TWISE',
-    #     'rz_sb_mar_sfv2_DIODE_HRWSI_no_f', 'rz_sb_mar_sfv2_DIODE_HRWSI_no_s',
-    #     'rz_sb_mar_sfv2_DIODE_HRWSI_no_p','rz_sb_mar_sfv2_DIODE_HRWSI_only_p', 'rz_sb_mar_sfv2_DIODE_HRWSI_only_s',
-    #     'rz_sb_mar_sfv2_DIODE_HRWSI_only_f'
-    # ]
+        'rz_sb_mar_GuideNet','rz_sb_mar_ReDC', 'rz_sb_mar_MDAnet',
+        'rz_sb_mar_NLSPN_KITTI','rz_sb_mar_PEnet','rz_sb_mar_G2_Mono', 'rz_sb_mar_JARRN_full_05line_05point', 'rz_sb_mar_JARRN_mixed_05point_05line',
+        'rz_sb_mar_SDCM','rz_sb_mar_TWISE',
+        'rz_sb_mar_sfv2_DIODE_HRWSI_no_f', 'rz_sb_mar_sfv2_DIODE_HRWSI_no_s',
+        'rz_sb_mar_sfv2_DIODE_HRWSI_no_p','rz_sb_mar_sfv2_DIODE_HRWSI_only_p', 'rz_sb_mar_sfv2_DIODE_HRWSI_only_s',
+        'rz_sb_mar_sfv2_DIODE_HRWSI_only_f'
+    ]
     # method_list = ['rz_sb_mar_BPnet', 'rz_sb_mar_sfv2_DIODE_HRWSI', 'rz_sb_mar_JARRN_mixed_05point_05line']
     # method_list = ['rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI']
     # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_LSM']
     # method_list = ['rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI_2', 'rz_sb_mar_SDCM','rz_sb_mar_PEnet','rz_sb_mar_ReDC','rz_sb_mar_CFormer_KITTI', 'rz_sb_mar_EMDC', 
     #                'rz_sb_mar_NLSPN_KITTI','rz_sb_mar_TWISE','rz_sb_mar_MDAnet', 'rz_sb_mar_LRRU', 'rz_sb_mar_GuideNet']
-    method_list = ['rz_sb_mar_JARRN_60LiDAR']
+    # method_list = ['rz_sb_mar_JARRN_60LiDAR']
     # method_list = ['rz_sb_mar_CFormer_KITTI',
     #     'rz_sb_mar_EMDC',
     #     'rz_sb_mar_LRRU',
@@ -372,7 +372,7 @@ if __name__ == '__main__':
     # pro_dict = {'result_very_sparse':[0,1,2,3,10,20,50,100]}
     # pro_dict = {'result': [0.001,0.01,0.1,0.2,0.5,0.7]}
     # pro_dict = {'result': [1.0]}
-    pro_dict = {'result': [0.01,0.1,0.2,0.5,0.7, 1.04, 1.016, 1.064,1.08,1.032, 1.0128]}
+    pro_dict = {'result': [0.01,0.1,0.2,0.5,0.7, 1.04,1.08,1.016, 1.032,1.064, 1.0128]}
     # pro_dict = {'result': [0.2]}
     # pro_dict = {'result': [0.1,0.2,0.7]}
     # pro_dict = {'result': [0.01,0.1,0.2,0.5,0.7]}

@@ -1,6 +1,6 @@
 import argparse
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]='0,1'
+os.environ["CUDA_VISIBLE_DEVICES"]='0,1,2,3'
 from pathlib import Path
 from src.src_main import AbsRel_depth
 from src.networks import V2Net,UNet
@@ -131,7 +131,7 @@ def parse_arguments():
         type=int,
         required=False,
         nargs="+",
-        default=12,
+        default=8,
         # default=1,
         help="batch sizes",
     )
@@ -197,6 +197,7 @@ def DDP_main(rank, world_size):
             args.save_dir += '_gd'
             
     args.save_dir += '_' + args.mode
+    args.save_dir += '_' + 'JARRN_60LiDAR'
     args.save_dir = Path(args.save_dir)
     
     # DDP components
@@ -209,7 +210,7 @@ def DDP_main(rank, world_size):
         formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
         print("Started Time:", formatted_time)
         print(f'We use {args.model} model!!!')
-    model_dict = { 'unet':UNet(rezero=args.rezero), 'spnorm':V2Net()}
+    model_dict = { 'unet':UNet(rezero=args.rezero), 'spnorm':V2Net(dims=[3,3,27,3], depths=[192,384,768,1536], dp_rate=0.2, norm_type='CNX')}
     network = model_dict[args.model]
     
     if rank == 0:
@@ -235,10 +236,10 @@ def DDP_main(rank, world_size):
     semigan.train(
         args=args,
         rank=rank,
-        learning_rate=0.0001,
+        learning_rate=0.0002,
         feedback_factor=1000,
         checkpoint_factor=2,
-        num_workers=2,
+        num_workers=3,
         checkpoint=checkpoint,
     )
     if rank == 0:

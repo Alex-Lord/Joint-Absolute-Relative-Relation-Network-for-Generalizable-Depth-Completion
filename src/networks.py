@@ -7,7 +7,7 @@ import torch.nn as nn
 from torch.nn import Module, Conv2d, init, Sequential, ModuleDict
 from custom_blocks import *
 
-from .modules import FirstModule, UNetModule, StackedBottleNeck
+from .modules import FirstModule, UNetModule, StackedBottleNeck, Encoder, Decoder
 from einops import rearrange
 from torch.cuda.amp import autocast
 from .utils import save_feature_as_uint8colored
@@ -235,3 +235,31 @@ class UNet(Module):
 #         K = K.unsqueeze(0)
 #         depth = self.network(rgb.cuda(), point.cuda(), K.cuda())  
 #         return depth,depth,depth,depth
+
+class V2Net(nn.Module):
+    # 用来测SPNorm
+    def __init__(self, depths=[3,3,27,3], dims=[192,384,768,1536], dp_rate=0.2, norm_type='CNX'):
+        super(V2Net, self).__init__()
+
+        self.visual_branch = nn.Sequential(
+                Encoder(5, dims=dims, depths=depths, dp_rate=dp_rate, norm_type=norm_type),
+                Decoder(1, dims=dims, norm_type=norm_type)
+            )
+        # initializing
+        self.apply(self._init_weights)
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Conv2d) and hasattr(m, 'weight') and m.weight is not None:
+            if m.weight.numel() > 0:
+                nn.init.xavier_normal_(m.weight)
+            else:
+                print(f"Skipping Xavier initialization for {m} (zero-element tensor)")
+
+
+    def forward(self, rgb, raw, hole_raw):
+        x = torch.cat((rgb, raw, hole_raw), dim=1)
+        # print(x.shape)
+        # print(self.visual_branch)
+        depth = self.visual_branch(x)
+        
+        return depth,depth,depth,depth

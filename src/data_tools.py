@@ -785,10 +785,11 @@ class RGBDDataset(Dataset):
         gt_cp = torch.clone(gt)
         hole_gt_cp = torch.clone(hole_gt)
         
-        # 30概率变成线数
+        
         random_factor = np.random.uniform(0.0, 1.0)
         
-        line_factor = 0.6
+        # 0%概率变成线数
+        line_factor = 0
         if random_factor < line_factor:
             point_map = self.__getline__(gt, hole_gt)
         else:

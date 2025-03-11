@@ -13,6 +13,8 @@ class LayerNorm(nn.Module):
     The ordering of the dimensions in the inputs. channels_last corresponds to inputs with
     shape (batch_size, height, width, channels) while channels_first corresponds to inputs
     with shape (batch_size, channels, height, width).
+    
+    We use channel_first mode for SP-Norm.
     """
 
     def __init__(self, normalized_shape, eps=1e-6, affine=True):
@@ -31,7 +33,6 @@ class LayerNorm(nn.Module):
         return x
 
 
-
 class NormLayer(nn.Module):
     def __init__(self, normalized_shape, norm_type):
         super(NormLayer, self).__init__()
@@ -47,6 +48,7 @@ class NormLayer(nn.Module):
             self.norm = nn.Identity()
         elif self.norm_type in ['CNX', 'CN+X', 'GRN']:
             self.norm = LayerNorm(normalized_shape, affine=False)
+            # Use 1*1 conv to implement SLP in the channel dimension. 
             self.conv = nn.Conv2d(normalized_shape, normalized_shape, kernel_size=1)
         elif self.norm_type == 'NX':
             self.norm = LayerNorm(normalized_shape, affine=True)
@@ -56,8 +58,6 @@ class NormLayer(nn.Module):
             raise ValueError('norm_type error')
 
     def forward(self, x):
-        # save_featuremaps(self.conv(self.norm(x)), '/home/WangHT/python/G2-V2/featuremaps/w.png')
-        # save_featuremaps(x, '/home/WangHT/python/G2-V2/featuremaps/before.png')
         if self.norm_type in ['LN', 'BN', 'IN', 'RZ']:
             x = self.norm(x)
         elif self.norm_type in ['CNX', 'GRN']:
@@ -70,7 +70,6 @@ class NormLayer(nn.Module):
             x = self.conv(x) * x
         else:
             raise ValueError('norm_type error')
-        # save_featuremaps(x, '/home/WangHT/python/G2-V2/featuremaps/after.png')
         return x
 
 
@@ -96,6 +95,24 @@ class CNBlock(nn.Module):
             res = self.alpha * res
         x = x + self.drop_path(res)
         return x
+
+
+class GRN(nn.Module):
+    """ GRN (Global Response Normalization) layer
+    """
+
+    def __init__(self, dim, eps=1e-6):
+        super().__init__()
+        self.eps = eps
+        self.gamma = nn.Parameter(torch.zeros(1, dim, 1, 1))
+        self.beta = nn.Parameter(torch.zeros(1, dim, 1, 1))
+
+    def forward(self, x):
+        Gx = torch.norm(x, p=2, dim=(2, 3), keepdim=True)
+        Nx = Gx / (Gx.mean(dim=1, keepdim=True) + self.eps)
+        x = (1 + self.gamma * Nx) * x + self.beta
+        return x
+
 
 
 

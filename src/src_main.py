@@ -47,28 +47,7 @@ class AbsRel_depth:
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
 
         optimizer.zero_grad()
-        # with autocast():
-        #     # loss in absolute domain
-        #     reg_function = WeightedDataLoss()
-        #     # depth, s, f, prob, dense_out = self.network(rgb, point_map, hole_tuple[1])
-        #     depth, s, f, prob = self.network(rgb, point_map, hole_tuple[1])
-        #     loss_adepth = reg_function(depth, gt, hole_tuple[1])
-
-        #     # loss in relative domain
-        #     sta_tool = StandardizeData(mode=args.mode)
-        #     sta_depth, sta_gt = sta_tool(depth, gt, hole_tuple[0])
-        #     loss_rdepth = reg_function(sta_depth, sta_gt, hole_tuple[0])
-
-        #     if args.msgrad:
-        #         grad_function = WeightedMSGradLoss(sobel=args.sobel)
-        #         loss_rgrad = grad_function(sta_depth, sta_gt, hole_tuple[0])
-        #         loss = loss_adepth + loss_rdepth + 0.5 * loss_rgrad
-        #     else:
-        #         loss = loss_adepth + loss_rdepth
-        #         loss_rgrad = torch.tensor(0.)
-        
-        
-        with autocast(enabled=False):  # L1 L2 loss
+        with autocast():
             # loss in absolute domain
             reg_function = WeightedDataLoss()
             # depth, s, f, prob, dense_out = self.network(rgb, point_map, hole_tuple[1])
@@ -76,12 +55,34 @@ class AbsRel_depth:
             loss_adepth = reg_function(depth, gt, hole_tuple[1])
 
             # loss in relative domain
-            reg_function = WeightedDataLossL2()
-            loss_rdepth = reg_function(depth, gt, hole_tuple[1])
+            sta_tool = StandardizeData(mode=args.mode)
+            sta_depth, sta_gt = sta_tool(depth, gt, hole_tuple[0])
+            loss_rdepth = reg_function(sta_depth, sta_gt, hole_tuple[0])
 
-            loss = 0.5*loss_adepth + 0.5*loss_rdepth
+            if args.msgrad:
+                grad_function = WeightedMSGradLoss(sobel=args.sobel)
+                loss_rgrad = grad_function(sta_depth, sta_gt, hole_tuple[0])
+                loss = loss_adepth + loss_rdepth + 0.5 * loss_rgrad
+            else:
+                loss = loss_adepth + loss_rdepth
+                loss_rgrad = torch.tensor(0.)
+        
+        
+        # L1 L2 loss
+        # with autocast(enabled=False):  
+        #     # loss in absolute domain
+        #     reg_function = WeightedDataLoss()
+        #     # depth, s, f, prob, dense_out = self.network(rgb, point_map, hole_tuple[1])
+        #     depth, s, f, prob = self.network(rgb, point_map, hole_tuple[1])
+        #     loss_adepth = reg_function(depth, gt, hole_tuple[1])
+
+        #     # loss in relative domain
+        #     reg_function = WeightedDataLossL2()
+        #     loss_rdepth = reg_function(depth, gt, hole_tuple[1])
+
+        #     loss = 0.5*loss_adepth + 0.5*loss_rdepth
             
-            loss_rgrad = loss_rdepth
+        #     loss_rgrad = loss_rdepth
         scaler.scale(loss).backward()
         scaler.step(optimizer)
         scaler.update()
@@ -100,12 +101,12 @@ class AbsRel_depth:
             # summary: SummaryWriter,
             global_step: int,
     ) -> None:
-        # print(
-        #     'Elapsed:[%s]|batch:[%d/%d]|abs:%.4f|rel:%.4f|grad:%.4f'
-        #     % (
-        #         elapsed, i, iteration_num, float(loss_adepth), float(loss_rdepth), float(loss_rgrad)
-        #     )
-        # )
+        print(
+            'Elapsed:[%s]|batch:[%d/%d]|abs:%.4f|rel:%.4f|grad:%.4f'
+            % (
+                elapsed, i, iteration_num, float(loss_adepth), float(loss_rdepth), float(loss_rgrad)
+            )
+        )
 
         # # log loss
         # summary.add_scalar(
@@ -270,6 +271,7 @@ class AbsRel_depth:
                 global_step += 1
                 # nan 测试
                 if loss_adepth != loss_adepth or loss_rdepth != loss_rdepth or loss_rgrad != loss_rgrad:
+                    model_dir, log_dir = args.save_dir / "models", args.save_dir / "logs"
                     save_file = model_dir / f"nan_epoch_{epoch}.pth"
                     torch.save({
                         'epoch': epoch,

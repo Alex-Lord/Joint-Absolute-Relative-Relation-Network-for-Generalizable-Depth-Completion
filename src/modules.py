@@ -10,6 +10,7 @@ class Encoder(nn.Module):
     def __init__(self, in_chans=5, dims=[96, 192, 384, 768], depths=[3, 3, 9, 3], dp_rate=0.0, norm_type='CNX'):
         super(Encoder, self).__init__()
         all_dims = [dims[0] // 4, dims[0] // 2] + dims
+        # print(all_dims)
         self.downsample_layers = nn.ModuleList()
         stem = nn.Conv2d(in_chans, all_dims[0], kernel_size=3, padding=1)
         self.downsample_layers.append(stem)
@@ -68,7 +69,7 @@ class Decoder(nn.Module):
             x = self.stages[i](x)
         x = self.head(x)
         return x
-    
+  
 class StackedBottleNeck(Module):
     def __init__(
             self,
