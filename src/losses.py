@@ -19,90 +19,24 @@ class Gradient2D(Module):
         grad_y = conv2d(x, self.weight_y)
         return grad_x, grad_y
 
-
-# class HuberLoss(object):
-#     def __init__(
-#             self,
-#             seta: float = 1.0,
-#             reduction: str = 'mean',
-#     ) -> None:
-#         super(HuberLoss, self).__init__()
-#         self.seta = seta
-#         self.reduction = reduction
-#
-#     def loss(self, output: Tensor, target: Tensor) -> Tensor:
-#         delta = output - target
-#         abs_delta = torch.abs(delta)
-#         with torch.no_grad():
-#             cond = torch.zeros_like(delta)
-#             cond[abs_delta <= self.seta] = 1.0
-#         loss_metric = cond * (0.5 * delta ** 2) + (1.0 - cond) * (self.seta * (abs_delta - 0.5 * self.seta))
-#         if self.reduction == 'sum':
-#             loss = torch.sum(loss_metric)
-#         else:
-#             loss = torch.mean(loss_metric)
-#         return loss
-#
-#
-# class RuBerLoss(object):
-#     def __init__(
-#             self,
-#             reduction: str = 'mean',
-#             eps=1e-6
-#     ) -> None:
-#         super(RuBerLoss, self).__init__()
-#         self.reduction = reduction
-#         self.eps = eps
-#
-#     def loss(self, output: Tensor, target: Tensor) -> Tensor:
-#         abs_delta = torch.abs(output - target)
-#         c = 0.3 * torch.max(abs_delta)
-#         loss_metric = torch.where(abs_delta <= c, abs_delta,
-#                                   torch.sqrt(torch.abs(2 * c * abs_delta - c ** 2) + self.eps))
-#         if self.reduction == 'sum':
-#             loss = torch.sum(loss_metric)
-#         else:
-#             loss = torch.mean(loss_metric)
-#         return loss
-#
-#
-# class FNBerHuLoss(object):
-#     def __init__(
-#             self,
-#             n: Tensor,
-#             reduction: str = 'mean',
-#             eps=1e-6
-#     ) -> None:
-#         super(FNBerHuLoss, self).__init__()
-#         self.n = n
-#         self.reduction = reduction
-#         self.eps = eps
-#
-#     def loss(self, output: Tensor, target: Tensor) -> Tensor:
-#         abs_delta = torch.abs(output - target)
-#         c = 0.2 * torch.max(abs_delta)
-#         loss_metric = torch.where(abs_delta <= c, abs_delta,
-#                                   (abs_delta ** self.n + (self.n - 1) * c ** self.n) /
-#                                   (self.n * c ** (self.n - 1) + self.eps))
-#         if self.reduction == 'sum':
-#             loss = torch.sum(loss_metric)
-#         else:
-#             loss = torch.mean(loss_metric)
-#         return loss
-#
-#
-# class L1Loss(Module):
-#     def __init__(self, reduction: str = 'mean'):
-#         super(L1Loss, self).__init__()
-#         self.reduction = reduction
-#
-#     def forward(self, output: Tensor, target: Tensor):
-#         residual = torch.abs(output - target)
-#         if self.reduction == 'sum':
-#             loss = torch.sum(residual, dim=(1, 2, 3))
-#         else:
-#             loss = torch.mean(residual, dim=(1, 2, 3))
-#         return loss
+# 修改后的损失计算模块
+class Loss_for_Prob(Module):
+    def __init__(self, epsilon=1):
+        super().__init__()
+        self.epsilon = epsilon
+    
+    def forward(self, output, target, hole, p):
+        # 孔洞区域混合
+        sampled_output = hole * output + (1.0 - hole) * target
+        
+        # 计算加权相对损失
+        error = (sampled_output - target) ** 2
+        weighted_error = (1 - p) * error / (2 * self.epsilon**2 + 1e-6)
+        
+        # 仅孔洞区域参与计算
+        masked_loss = hole * weighted_error
+        num_valid = torch.sum(hole) + 1e-6
+        return torch.sum(masked_loss) / num_valid
 
 
 class WeightedDataLoss(Module):

@@ -21,6 +21,9 @@ from .losses import (
 
     WeightedMSGradLoss,
     MaskedProbExpLoss,
+    
+    Loss_for_Prob,
+    
 )
 from .networks import UNet
 
@@ -47,11 +50,34 @@ class AbsRel_depth:
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
 
         optimizer.zero_grad()
+        
+        # Originail G2 Loss
+        # with autocast():
+        #     # loss in absolute domain
+        #     reg_function = WeightedDataLoss()
+        #     # depth, s, f, prob, dense_out = self.network(rgb, point_map, hole_tuple[1])
+        #     depth, s, f, prob = self.network(rgb, point_map, hole_tuple[1])
+        #     loss_adepth = reg_function(depth, gt, hole_tuple[1])
+
+        #     # loss in relative domain
+        #     sta_tool = StandardizeData(mode=args.mode)
+        #     sta_depth, sta_gt = sta_tool(depth, gt, hole_tuple[0])
+        #     loss_rdepth = reg_function(sta_depth, sta_gt, hole_tuple[0])
+
+        #     if args.msgrad:
+        #         grad_function = WeightedMSGradLoss(sobel=args.sobel)
+        #         loss_rgrad = grad_function(sta_depth, sta_gt, hole_tuple[0])
+        #         loss = loss_adepth + loss_rdepth + 0.5 * loss_rgrad
+        #     else:
+        #         loss = loss_adepth + loss_rdepth
+        #         loss_rgrad = torch.tensor(0.)
+        
+        # 概率建模Loss
         with autocast():
             # loss in absolute domain
             reg_function = WeightedDataLoss()
             # depth, s, f, prob, dense_out = self.network(rgb, point_map, hole_tuple[1])
-            depth, s, f, prob = self.network(rgb, point_map, hole_tuple[1])
+            depth, s, f, prob, dense_depth = self.network(rgb, point_map, hole_tuple[1])
             loss_adepth = reg_function(depth, gt, hole_tuple[1])
 
             # loss in relative domain
@@ -59,6 +85,12 @@ class AbsRel_depth:
             sta_depth, sta_gt = sta_tool(depth, gt, hole_tuple[0])
             loss_rdepth = reg_function(sta_depth, sta_gt, hole_tuple[0])
 
+            # Loss for Prob
+            reg_function = Loss_for_Prob()
+            loss_absP = reg_function(depth, gt, hole_tuple[1], prob)
+            loss_relP = reg_function(dense_depth, gt, hole_tuple[1], (1-prob))
+            loss_P = loss_absP+loss_relP
+            
             if args.msgrad:
                 grad_function = WeightedMSGradLoss(sobel=args.sobel)
                 loss_rgrad = grad_function(sta_depth, sta_gt, hole_tuple[0])
@@ -66,7 +98,8 @@ class AbsRel_depth:
             else:
                 loss = loss_adepth + loss_rdepth
                 loss_rgrad = torch.tensor(0.)
-        
+
+            loss += 0.5*loss_P
         
         # L1 L2 loss
         # with autocast(enabled=False):  

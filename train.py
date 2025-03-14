@@ -1,6 +1,6 @@
 import argparse
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]='0,1'
+os.environ["CUDA_VISIBLE_DEVICES"]='0,1,2'
 from pathlib import Path
 from src.src_main import AbsRel_depth
 from src.networks import V2Net,UNet
@@ -72,7 +72,7 @@ def parse_arguments():
         "--save_dir",
         action="store",
         type=str,
-        default=r'/data1/Chenbingyuan/Depth-Completion/result_SPNorm/',
+        default=r'/data1/Chenbingyuan/Depth-Completion/result_JARRN/',
         help="Path to the directory for saving the logs and models",
         required=False
     )
@@ -88,7 +88,7 @@ def parse_arguments():
         "--model",
         action="store",
         type=str,
-        default='spnorm',
+        default='unet',
         help="Choose model to use unet-JARRN or V2Net-spnorm",
         required=False,
     )
@@ -131,7 +131,7 @@ def parse_arguments():
         type=int,
         required=False,
         nargs="+",
-        default=12,
+        default=20,
         # default=1,
         help="batch sizes",
     )
@@ -197,8 +197,10 @@ def DDP_main(rank, world_size):
             args.save_dir += '_gd'
             
     args.save_dir += '_' + args.mode
-    args.save_dir = Path(args.save_dir)
     
+    
+    args.save_dir += '_' + 'JARRN_Prob'
+    args.save_dir = Path(args.save_dir)
     # DDP components
     DDPutils.setup(rank, world_size, args.port)
 
@@ -235,10 +237,10 @@ def DDP_main(rank, world_size):
     semigan.train(
         args=args,
         rank=rank,
-        learning_rate=0.0001,
+        learning_rate=0.0002,
         feedback_factor=1000,
         checkpoint_factor=2,
-        num_workers=2,
+        num_workers=4,
         checkpoint=checkpoint,
     )
     if rank == 0:
