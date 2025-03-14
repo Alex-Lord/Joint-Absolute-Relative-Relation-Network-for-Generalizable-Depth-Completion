@@ -11,7 +11,7 @@ import argparse
 from PIL import Image
 from pathlib import Path
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '6'
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 
 
 
@@ -177,7 +177,7 @@ def pred_and_save(network,rgb, point, hole_point, out_path, network_type, desc):
         gen_depth,_,_,_ = network(rgb.cuda(), point.cuda(), hole_point.cuda())  
         gen_depth = gen_depth.squeeze().to('cpu').numpy()
         depth = np.clip(gen_depth * 255., 0, 255).astype(np.int8)
-    if 'JARRN' in network_type or 'DIODE' in network_type:
+    if 'JARRN' in network_type or 'DIODE' in network_type or 'SPNorm' in network_type:
         # SfV2  G2_Mono
         gen_depth,_,_,_ = network(rgb.cuda(), point.cuda(), hole_point.cuda())  
         gen_depth = gen_depth.squeeze().to('cpu').numpy()
@@ -1028,6 +1028,20 @@ def depth_inference():
                     model_dir = '/data1/Chenbingyuan/Depth-Completion/src/baselines/BPnet/BP_KITTI/result_ema.pth'
                     cp = torch.load(model_dir, map_location='cuda:0')
                     network.load_state_dict(cp['net'], strict=True)
+                    
+                elif method == 'rz_sb_mar_JARRN_Prob':
+                    from sfv2_networks import JARRN
+                    network = JARRN(rezero=args.ReZero)  
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/result_JARRN/_rz_sb_mar_JARRN_Prob/models/epoch_60.pth'
+                    network = network.cuda()
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
+                
+                elif method == 'rz_sb_mar_SPNorm':
+                    from sfv2_networks import SPNorm
+                    network = SPNorm(depths=[3,3,27,3], dims=[192,384,768,1536], dp_rate=0.2, norm_type='CNX')  
+                    model_dir = '/data1/Chenbingyuan/Depth-Completion/result_SPNorm/_rz_sb_mar/models/epoch_60.pth'
+                    network = network.cuda()
+                    network.load_state_dict(on_load_checkpoint(torch.load(model_dir, map_location='cuda:0'))['network_state_dict'],strict=True) 
 
                 for mode in mode_list:
                     # 0-100
@@ -1075,7 +1089,7 @@ if __name__ == "__main__":
     # method_list = ['rz_sb_mar_SDCM','rz_sb_mar_PEnet','rz_sb_mar_ReDC','rz_sb_mar_CFormer_KITTI', 'rz_sb_mar_EMDC', 
     #                'rz_sb_mar_NLSPN_KITTI','rz_sb_mar_TWISE',] # completionformer 一个环境就可以解决
     # method_list = ['rz_sb_mar_MDAnet'] # torch1.7
-    method_list = ['rz_sb_mar_LRRU'] # LRRU_new
+    # method_list = ['rz_sb_mar_LRRU'] # LRRU_new
     # method_list = ['rz_sb_mar_GuideNet'] # cuda121
     # method_list = ['rz_sb_mar_sfv2_DIODE_HRWSI_large'] 
     # method_list = ['rz_sb_mar_JARRN_nosfp_direct_2branch_DIODE_HRWSI_2']
@@ -1084,7 +1098,8 @@ if __name__ == "__main__":
     # method_list = ['rz_sb_mar_JARRN_70LiDAR']
     # method_list = ['rz_sb_mar_JARRN_60LiDAR']
     
-    # 
+    method_list = ['rz_sb_mar_JARRN_Prob','rz_sb_mar_SPNorm']  # torch23
+    # method_list = ['rz_sb_mar_SPNorm']
 
     epoch_list = [60]
     crop = False
