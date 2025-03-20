@@ -1,9 +1,9 @@
 import argparse
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]='0,1,2'
+os.environ["CUDA_VISIBLE_DEVICES"]='1,2'
 from pathlib import Path
 from src.src_main import AbsRel_depth
-from src.networks import V2Net,UNet
+from src.networks import V2Net,UNet,UNet_Visual_Only
 from src.utils import str2bool, DDPutils
 
 import torch
@@ -88,8 +88,8 @@ def parse_arguments():
         "--model",
         action="store",
         type=str,
-        default='unet',
-        help="Choose model to use unet-JARRN or V2Net-spnorm",
+        default='unetVonly',
+        help="unet-JARRN or spnorm or unetVonly",
         required=False,
     )
     parser.add_argument(
@@ -131,7 +131,7 @@ def parse_arguments():
         type=int,
         required=False,
         nargs="+",
-        default=20,
+        default=40,
         # default=1,
         help="batch sizes",
     )
@@ -199,23 +199,22 @@ def DDP_main(rank, world_size):
     args.save_dir += '_' + args.mode
     
     
-    args.save_dir += '_' + 'JARRN_Prob'
+    args.save_dir += '_' + args.model
     args.save_dir = Path(args.save_dir)
     # DDP components
     DDPutils.setup(rank, world_size, args.port)
 
     
+    model_dict = { 'unet':UNet(rezero=args.rezero), 'spnorm':V2Net(), 'unetVonly':UNet_Visual_Only(rezero=args.rezero)}
+    network = model_dict[args.model]
     
     if rank == 0:
         current_time = datetime.datetime.now()
         formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
         print("Started Time:", formatted_time)
-        print(f'We use {args.model} model!!!')
-    model_dict = { 'unet':UNet(rezero=args.rezero), 'spnorm':V2Net()}
-    network = model_dict[args.model]
-    
-    if rank == 0:
+        print(f'We use {args.model} model, we have {model_dict}')
         print_model_parm_nums(network)
+        
     semigan = AbsRel_depth(
         network,
         rank,

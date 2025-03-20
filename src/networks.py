@@ -173,6 +173,21 @@ class UNet(Module):
         # prob = f
         return depth,s,f,prob,dense_depth
 
+class UNet_Visual_Only(UNet):
+    def __init__(self, rgb_x_layer_num: int = 7, rezero: bool = False):
+        super().__init__(rgb_x_layer_num, rezero)
+        del self.sfmap_block
+        del self.softmax
+    @autocast()
+    def forward(
+        self,
+        rgb: Tensor,
+        point: Tensor,
+        hole_point: Tensor, 
+    ) -> Tensor:
+        x1 = torch.cat((rgb, point, hole_point), dim=1)
+        depth = self.rgb_x_block(x1)
+        return (depth,) * 5  # 返回6个相同depth的tuple
 
 # # 直接将参数量翻倍
 # class UNet(Module):

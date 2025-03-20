@@ -37,6 +37,7 @@ class AbsRel_depth:
             rank: torch.device,
     ) -> None:
         self.network = network.to(rank)
+        self.rank = rank
         # print(network)
     def optimize_net(
             self,
@@ -73,7 +74,6 @@ class AbsRel_depth:
         #         loss_rgrad = torch.tensor(0.)
         
         # 概率建模Loss
-        print('此时我们正在使用概率Loss')
         with autocast():
             # loss in absolute domain
             reg_function = WeightedDataLoss()
