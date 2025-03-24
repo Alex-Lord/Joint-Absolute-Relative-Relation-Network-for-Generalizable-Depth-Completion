@@ -263,7 +263,6 @@ def pred_and_save(network,rgb, point, hole_point, out_path, network_type, desc):
         gen_depth = gen_depth.squeeze().to('cpu').numpy()
         depth = np.clip(gen_depth * 255., 0, 255).astype(np.int8)
     elif 'BPnet' in network_type and 'DIODE_HRWSI' not in network_type:           
-        # PENET
         if desc == 'nyu':
             fx, fy, cx, cy = 582.6244, 582.6910, 313.0447, 238.4438
         elif desc == 'DIODE':

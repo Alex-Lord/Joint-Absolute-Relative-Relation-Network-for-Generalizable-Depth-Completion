@@ -1,9 +1,9 @@
 import argparse
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]='1,2'
+os.environ["CUDA_VISIBLE_DEVICES"]='0'
 from pathlib import Path
 from src.src_main import AbsRel_depth
-from src.networks import V2Net,UNet,UNet_Visual_Only
+from src.networks import V2Net, UNet, UNet_Visual_Only, BPNet
 from src.utils import str2bool, DDPutils
 
 import torch
@@ -35,6 +35,14 @@ def parse_arguments():
         default=['DIODE/train','HRWSI/train'],
         help="Path to RGB-depth folder",
         required=False
+    )
+    parser.add_argument(
+        "--model",
+        action="store",
+        type=str,
+        default='bpnet',
+        help="unet-JARRN or spnorm or unetVonly or bpnet",
+        required=False,
     )
     parser.add_argument(
         "--rgbd_dir",
@@ -84,14 +92,7 @@ def parse_arguments():
         help="whether to use the ReZero",
         required=False,
     )
-    parser.add_argument(
-        "--model",
-        action="store",
-        type=str,
-        default='unetVonly',
-        help="unet-JARRN or spnorm or unetVonly",
-        required=False,
-    )
+    
     parser.add_argument(
         "--sobel",
         action="store",
@@ -131,7 +132,7 @@ def parse_arguments():
         type=int,
         required=False,
         nargs="+",
-        default=40,
+        default=4,
         # default=1,
         help="batch sizes",
     )
@@ -205,7 +206,7 @@ def DDP_main(rank, world_size):
     DDPutils.setup(rank, world_size, args.port)
 
     
-    model_dict = { 'unet':UNet(rezero=args.rezero), 'spnorm':V2Net(), 'unetVonly':UNet_Visual_Only(rezero=args.rezero)}
+    model_dict = { 'unet':UNet(rezero=args.rezero), 'spnorm':V2Net(), 'unetVonly':UNet_Visual_Only(rezero=args.rezero), 'bpnet':BPNet()}
     network = model_dict[args.model]
     
     if rank == 0:

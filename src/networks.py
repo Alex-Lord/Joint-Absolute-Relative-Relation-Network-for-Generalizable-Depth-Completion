@@ -13,10 +13,45 @@ from torch.cuda.amp import autocast
 from .utils import save_feature_as_uint8colored
 from .cby_unet import *
 
+from .baselines.BPnet.models.BPNet import Net as BPnetModel
+
 rgb_x_chan = [512, 512, 512, 512, 256, 128, 64]
 
 sf_chan = [512, 512, 512, 512, 256, 128, 64]
 
+class BPNet(Module):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.BPmodules = BPnetModel()
+        fx, fy, cx, cy = 582.6244, 582.6910, 313.0447, 238.4438
+        self.K = torch.Tensor([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
+        self.K = self.K.unsqueeze(0)
+        self.KITTI_factor = 80
+        for m in self.modules():
+            if isinstance(m, Conv2d):
+                init.kaiming_normal_(m.weight, a=0.2)
+                if m.bias is not None:  # 🔥 避免对 None 执行 zero_()
+                    init.zeros_(m.bias)
+
+    @autocast()         
+    def forward(self,
+        rgb: Tensor,
+        point: Tensor,
+        hole_point: Tensor, 
+    ) -> Tensor:
+        # 获取 point 所在的设备
+        device = point.device
+        
+        # 确保所有输入转移到同一设备
+        point = point * self.KITTI_factor  # 假设 KITTI_factor 是标量或已在 device 上
+        k = self.K
+        # 如果设备不同，手动将它们移到相同设备
+        device = rgb.device  # 假设 rgb 已经在正确的设备上
+        point = point.to(device)
+        k = k.to(device)
+
+        gen_depth = self.BPmodules(rgb, point, k)
+        return (gen_depth,) * 5
 # JARRN
 # class UNet(Module):
 #     def __init__(self, rgb_x_layer_num: int = 7, rezero: bool = False):
