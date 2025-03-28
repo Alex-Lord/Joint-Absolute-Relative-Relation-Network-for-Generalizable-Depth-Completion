@@ -1,6 +1,6 @@
 import argparse
 import os
-  from pathlib import Path
+from pathlib import Path
 from src.src_main import AbsRel_depth
 from src.networks import UNet
 from src.utils import str2bool, DDPutils
@@ -135,7 +135,7 @@ def parse_arguments():
         "--model_dir",
         action="store",
         type=lambda x: Path(x),
-        default=r'/data1/name/JARRN/models/epoch_51.pth',
+        default=r'None',
         help="Path to load models",
         required=False
     )
@@ -149,8 +149,6 @@ def parse_arguments():
 
     args = parser.parse_args()
     
-    for dir in args.rgbd_dataset:
-        args.rgbd_dir.append('/data1/name/JARRN/g2_dataset/' + dir)
     return args
 
 def generate_random_seed(seed):
@@ -186,8 +184,6 @@ def DDP_main(rank, world_size):
             
     args.save_dir += '_' + args.mode
     
-    
-    args.save_dir += '_' + args.model
     args.save_dir = Path(args.save_dir)
     # DDP components
     DDPutils.setup(rank, world_size, args.port)
@@ -243,4 +239,4 @@ if __name__ == "__main__":
     args.gpu_num = len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))
     n_gpus = torch.cuda.device_count()
     if torch.cuda.is_available():
-        DDPutils.run_demo(DDP_main, n_gpus)  # 如果使用mmcl，则启用这条命令
+        DDPutils.run_demo(DDP_main, n_gpus)  
