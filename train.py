@@ -1,9 +1,8 @@
 import argparse
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]='0'
-from pathlib import Path
+  from pathlib import Path
 from src.src_main import AbsRel_depth
-from src.networks import V2Net, UNet, UNet_Visual_Only, BPNet
+from src.networks import UNet
 from src.utils import str2bool, DDPutils
 
 import torch
@@ -12,9 +11,6 @@ import setproctitle
 import numpy as np
 import random
 import datetime
-setproctitle.setproctitle("PyThon")
-
-
 
 # turn fast mode on
 torch.backends.cudnn.enabled = True
@@ -30,8 +26,6 @@ def parse_arguments():
         "--rgbd_dataset",
         action="store",
         type=list,
-        # default=['nyu/train'],
-        # default=['DIODE/train','HRWSI/train','DIODE_2/train','HRWSI_2/train'],
         default=['DIODE/train','HRWSI/train'],
         help="Path to RGB-depth folder",
         required=False
@@ -60,19 +54,12 @@ def parse_arguments():
         help="Select GPU",
         required=False
     )
-    # parser.add_argument(
-    #     "--hole_dir",
-    #     action="store",
-    #     type=lambda x: Path(x),
-    #     default=r'/data1/Chenbingyuan/Depth-Completion/g2_dataset/hole_dataset',
-    #     help="Path to Hole folder",
-    #     required=False
-    # )
+
     parser.add_argument(
         "--hole_dir",
         action="store",
         type=list,
-        default=['/data1/Chenbingyuan/Depth-Completion/g2_dataset/Hole_Dataset'],
+        default=['/data1/name/JARRN/g2_dataset/Hole_Dataset'],
         help="Path to Hole folder",
         required=False
     )
@@ -80,7 +67,7 @@ def parse_arguments():
         "--save_dir",
         action="store",
         type=str,
-        default=r'/data1/Chenbingyuan/Depth-Completion/result_JARRN/',
+        default=r'/data1/name/JARRN/result_JARRN/',
         help="Path to the directory for saving the logs and models",
         required=False
     )
@@ -148,7 +135,7 @@ def parse_arguments():
         "--model_dir",
         action="store",
         type=lambda x: Path(x),
-        default=r'/data1/Chenbingyuan/Depth-Completion/models/epoch_51.pth',
+        default=r'/data1/name/JARRN/models/epoch_51.pth',
         help="Path to load models",
         required=False
     )
@@ -163,7 +150,7 @@ def parse_arguments():
     args = parser.parse_args()
     
     for dir in args.rgbd_dataset:
-        args.rgbd_dir.append('/data1/Chenbingyuan/Depth-Completion/g2_dataset/' + dir)
+        args.rgbd_dir.append('/data1/name/JARRN/g2_dataset/' + dir)
     return args
 
 def generate_random_seed(seed):
@@ -206,7 +193,7 @@ def DDP_main(rank, world_size):
     DDPutils.setup(rank, world_size, args.port)
 
     
-    model_dict = { 'unet':UNet(rezero=args.rezero), 'spnorm':V2Net(), 'unetVonly':UNet_Visual_Only(rezero=args.rezero), 'bpnet':BPNet()}
+    model_dict = { 'unet':UNet(rezero=args.rezero)}
     network = model_dict[args.model]
     
     if rank == 0:
@@ -221,7 +208,7 @@ def DDP_main(rank, world_size):
         rank,
     )
     args.resume_train = False
-    args.model_dir = '/data1/Chenbingyuan/Depth-Completion/result_JARRN/_rz_sb_mar_JARRN_mixed_1line_1point_fixed/models/epoch_13.pth'
+
     if rank == 0:
         print(f"Selected arguments: {args}")
     # resume train
@@ -257,4 +244,3 @@ if __name__ == "__main__":
     n_gpus = torch.cuda.device_count()
     if torch.cuda.is_available():
         DDPutils.run_demo(DDP_main, n_gpus)  # 如果使用mmcl，则启用这条命令
-        # noDDP_main()

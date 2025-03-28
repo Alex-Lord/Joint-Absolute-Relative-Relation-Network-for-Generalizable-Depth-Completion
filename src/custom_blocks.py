@@ -113,9 +113,6 @@ class GRN(nn.Module):
         x = (1 + self.gamma * Nx) * x + self.beta
         return x
 
-
-
-
 class ResNeXtBottleneck(Module):
 
     def __init__(
@@ -163,7 +160,6 @@ class ResNeXtBottleneck(Module):
         x1 = factor * self.left(x) + (x
                                       if self.right is None else self.right(x))
         return x1
-
 
 class BottleNeck(Module):
 
@@ -442,9 +438,6 @@ class ViT(nn.Module):
 
         x = self.transformer(x)
 
-        # x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
-        # 取消了池化
-
         x = self.to_latent(x)
         return self.head_block(x), x
 
@@ -554,7 +547,6 @@ class Bottleneck(nn.Module):
         self.downsample = downsample
         self.stride = stride
 
-
     def forward(self, x):
         residual = x
 
@@ -576,7 +568,6 @@ class Bottleneck(nn.Module):
         out = self.relu(out)
 
         return out
-
 
 class down(nn.Module):
     def __init__(self, in_ch, out_ch):
@@ -617,10 +608,8 @@ class double_conv(nn.Module):
         
         self.conv = nn.Sequential(
             nn.Conv2d(in_ch, out_ch, 3, padding=1),
-            # nn.BatchNorm2d(out_ch),
             nn.ReLU(inplace=True),
             nn.Conv2d(out_ch, out_ch, 3, padding=1),
-            # nn.BatchNorm2d(out_ch),
             nn.ReLU(inplace=True)
         )
 
@@ -658,8 +647,6 @@ class UNetSP(nn.Module):
         x2 = self.down1(x1) #64
         x3 = self.down2(x2) #64
         x4 = self.down3(x3) #128
-        #x5 = self.down4(x4) #128
-        #x = self.up1(x5, x4) #128
         x = self.up2(x4, x3) #128
         x = self.up3(x, x2)
         x = self.up4(x, x1)
@@ -697,122 +684,4 @@ class up(nn.Module):
         x = torch.cat([x2, x1], dim=1)
         x = self.conv(x)
         return x
-
-
-class Fast_dense_to_sparse_Attention(nn.Module):
-    def __init__(self, in_channels):
-        super(Fast_dense_to_sparse_Attention, self).__init__()
-
-        # 初始化Query、Key、Value三个卷积层
-        self.query_conv = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=1)
-        self.key_conv = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=1)
-        self.value_conv = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=1)
-        # 初始化Softmax层
-        self.softmax = nn.Softmax(dim=-1)
-        # 初始化gamma
-        self.gamma = nn.Parameter(torch.zeros(1))
-        
-    def forward(self, Ref, Input):
-        """
-        Ref: 生成Query，大小为[b, c, h, w]  稀疏输入
-        Input: 生成Key和Value，大小为[b, c, h, w]   稠密输入
-
-        Returns:
-        out: 经过Attention计算后的结果，大小为[b, c, h, w]
-        """
-        b, c, h, w = Ref.size()
-        # 获取Query、Key、Value
-        query = self.query_conv(Ref) # [b, c, h, w]
-        key = self.key_conv(Input)     # [b, c, h, w]
-        value = self.value_conv(Input) # [b, c, h, w]
-
-        # 生成binary mask
-        query_mask = torch.where(query > 0, torch.tensor(1, device=query.device), torch.tensor(0, device=query.device))
-        key_mask = torch.where(key > 0, torch.tensor(1, device=key.device), torch.tensor(0, device=key.device))
-
-        # 对Query进行Mask
-        query_masked = query * query_mask
-
-        # 将query_masked进行strip average pooling  [b,c,1,w]
-        strip_pooling = nn.AvgPool2d(kernel_size=(1,w), stride=(1,w))
-        query_masked_reshaped = strip_pooling(query_masked)
-
-        # 将Key进行Mask
-        key_masked = key * key_mask
-
-        # 将key_masked进行strip average pooling  [b,c,h,1]
-        strip_pooling = nn.AvgPool2d(kernel_size=(h,1), stride=(1, 1))
-        key_masked_reshaped = strip_pooling(key_masked)
-        
-
-        # 对query_masked_reshaped_transposed和key_masked_reshaped进行矩阵乘法，得到能量矩阵，形状为[b, c, h, w]
-        energy_masked_reshaped = torch.matmul(query_masked_reshaped, key_masked_reshaped)
-
-        # 将矩阵energy重塑为形状为[bc, hw]的2D矩阵，这样我们才能在最后一维上做softmax操作,最后reshape回[b, c, h, w]
-        attention = torch.softmax(energy_masked_reshaped.view(-1, h * w), dim=-1).view(b, c, h, w)
-
-        # 将Attention加权后的Value进行重构
-        out = attention * value
-
-        # 将加权后的Value通过输出卷积层进行处理
-        out = self.gamma * out + Input
-        return out
-    
-    
-class Dense_to_sparse_Attention(nn.Module):
-    def __init__(self, in_channels):
-        super(Dense_to_sparse_Attention, self).__init__()
-
-        # 初始化Query、Key、Value三个卷积层
-        self.query_conv = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=1)
-        self.key_conv = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=1)
-        self.value_conv = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=1)
-        # 初始化Softmax层
-        self.softmax = nn.Softmax(dim=-1)
-        # 初始化gamma
-        self.gamma = nn.Parameter(torch.zeros(1))
-        
-    def forward(self, Ref, Input):
-        """
-        Ref: 生成Query，大小为[b, c, h, w]  稀疏输入
-        Input: 生成Key和Value，大小为[b, c, h, w]   稠密输入
-
-        Returns:
-        out: 经过Attention计算后的结果，大小为[b, c, h, w]
-        """
-        b, c, h, w = Ref.size()
-        # 获取Query、Key、Value
-        query = self.query_conv(Ref) # [b, c, h, w]
-        key = self.key_conv(Input)     # [b, c, h, w]
-        value = self.value_conv(Input) # [b, c, h, w]
-        
-        
-        print(f'query={query.shape}')
-        print(f'key={key.shape}')
-        print(f'value={value.shape}')
-         # 将Query和Key进行相似度计算
-        energy = torch.matmul(query.view(b, c, -1, 1), 
-                              key.view(b, c, 1, -1).transpose(1, 2)) # [b, c, hw, hw]
-
-        # 计算Attention权重
-        # 将 energy 重塑为 [b*c, hw*hw]
-        energy_reshaped = energy.view(energy.size(0) * energy.size(1), -1)
-
-        # 在 dim=-1 的维度上应用 softmax 操作
-        attention_reshaped = self.softmax(energy_reshaped)
-
-        print(f'energy_reshaped={energy_reshaped.shape}')
-        print(f'energy={energy.shape}')
-        print(f'attention_reshaped={attention_reshaped.shape}')
-        # 将 attention 恢复为 [b, c, hw, hw]
-        attention = attention_reshaped.view(energy.size(0), energy.size(1), energy.size(2), energy.size(3))
-
-        # 将Value按照Attention权重进行加权求和
-        out = torch.matmul(attention, value.view(value.size(0), value.size(1), -1)) # [b, c, hw, 1]
-
-        # 转换输出的形状
-        out = out.view(out.size(0), out.size(1), value.size(2), value.size(3)) # [b, c, h, w]
-
-        out = self.gamma * out + Input
-        return out
 

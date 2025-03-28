@@ -8,7 +8,7 @@ import torch
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
 from torch.optim.lr_scheduler import MultiStepLR
-# from torch.utils.tensorboard import SummaryWriter
+
 from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel as DDP
 from typing import Dict, Tuple
@@ -17,12 +17,8 @@ from .utils import save_img, DataGenerator, min_max_norm, StandardizeData
 from .data_tools import get_dataloader
 from .losses import (
     WeightedDataLoss,
-    WeightedDataLossL2,
-
     WeightedMSGradLoss,
-    MaskedProbExpLoss,
-    
-    Loss_for_Prob,
+
     
 )
 from .networks import UNet
@@ -38,7 +34,7 @@ class AbsRel_depth:
     ) -> None:
         self.network = network.to(rank)
         self.rank = rank
-        # print(network)
+        
     def optimize_net(
             self,
             rgb: Tensor,
@@ -53,32 +49,11 @@ class AbsRel_depth:
         optimizer.zero_grad()
         
         # Originail G2 Loss
-        # with autocast():
-        #     # loss in absolute domain
-        #     reg_function = WeightedDataLoss()
-        #     # depth, s, f, prob, dense_out = self.network(rgb, point_map, hole_tuple[1])
-        #     depth, s, f, prob = self.network(rgb, point_map, hole_tuple[1])
-        #     loss_adepth = reg_function(depth, gt, hole_tuple[1])
-
-        #     # loss in relative domain
-        #     sta_tool = StandardizeData(mode=args.mode)
-        #     sta_depth, sta_gt = sta_tool(depth, gt, hole_tuple[0])
-        #     loss_rdepth = reg_function(sta_depth, sta_gt, hole_tuple[0])
-
-        #     if args.msgrad:
-        #         grad_function = WeightedMSGradLoss(sobel=args.sobel)
-        #         loss_rgrad = grad_function(sta_depth, sta_gt, hole_tuple[0])
-        #         loss = loss_adepth + loss_rdepth + 0.5 * loss_rgrad
-        #     else:
-        #         loss = loss_adepth + loss_rdepth
-        #         loss_rgrad = torch.tensor(0.)
-        
-        # 概率建模Loss
         with autocast():
             # loss in absolute domain
             reg_function = WeightedDataLoss()
             # depth, s, f, prob, dense_out = self.network(rgb, point_map, hole_tuple[1])
-            depth, s, f, prob, dense_depth = self.network(rgb, point_map, hole_tuple[1])
+            depth, s, f, prob = self.network(rgb, point_map, hole_tuple[1])
             loss_adepth = reg_function(depth, gt, hole_tuple[1])
 
             # loss in relative domain
@@ -86,12 +61,6 @@ class AbsRel_depth:
             sta_depth, sta_gt = sta_tool(depth, gt, hole_tuple[0])
             loss_rdepth = reg_function(sta_depth, sta_gt, hole_tuple[0])
 
-            # Loss for Prob
-            reg_function = Loss_for_Prob()
-            loss_absP = reg_function(depth, gt, hole_tuple[1], prob)
-            loss_relP = reg_function(dense_depth, gt, hole_tuple[1], (1-prob))
-            loss_P = loss_absP+loss_relP
-            
             if args.msgrad:
                 grad_function = WeightedMSGradLoss(sobel=args.sobel)
                 loss_rgrad = grad_function(sta_depth, sta_gt, hole_tuple[0])
@@ -99,24 +68,8 @@ class AbsRel_depth:
             else:
                 loss = loss_adepth + loss_rdepth
                 loss_rgrad = torch.tensor(0.)
-
-            loss += 0.5*loss_P
         
-        # L1 L2 loss
-        # with autocast(enabled=False):  
-        #     # loss in absolute domain
-        #     reg_function = WeightedDataLoss()
-        #     # depth, s, f, prob, dense_out = self.network(rgb, point_map, hole_tuple[1])
-        #     depth, s, f, prob = self.network(rgb, point_map, hole_tuple[1])
-        #     loss_adepth = reg_function(depth, gt, hole_tuple[1])
-
-        #     # loss in relative domain
-        #     reg_function = WeightedDataLossL2()
-        #     loss_rdepth = reg_function(depth, gt, hole_tuple[1])
-
-        #     loss = 0.5*loss_adepth + 0.5*loss_rdepth
-            
-        #     loss_rgrad = loss_rdepth
+      
         scaler.scale(loss).backward()
         scaler.step(optimizer)
         scaler.update()
@@ -132,8 +85,7 @@ class AbsRel_depth:
             loss_adepth: Tensor,
             loss_rdepth: Tensor,
             loss_rgrad: Tensor,
-            # summary: SummaryWriter,
-            global_step: int,
+
     ) -> None:
         print(
             'Elapsed:[%s]|batch:[%d/%d]|abs:%.4f|rel:%.4f|grad:%.4f'
@@ -142,16 +94,6 @@ class AbsRel_depth:
             )
         )
 
-        # # log loss
-        # summary.add_scalar(
-        #     "loss/loss_abs", loss_adepth, global_step=global_step
-        # )
-        # summary.add_scalar(
-        #     "loss/loss_rel", loss_rdepth, global_step=global_step
-        # )
-        # summary.add_scalar(
-        #     "loss/loss_grad", loss_rgrad, global_step=global_step
-        # )
         pass
 
     @staticmethod
@@ -163,7 +105,6 @@ class AbsRel_depth:
             s:Tensor,
             f:Tensor,
             prob:Tensor,
-            # dense_out:Tensor,
             log_dir: Path,
             epoch: int,
             iter_step: int,
@@ -180,8 +121,6 @@ class AbsRel_depth:
         s_file = epoch_dir / f"s_{epoch}_{iter_step}.png"
         f_file = epoch_dir / f"f_{epoch}_{iter_step}.png"
         prob_file = epoch_dir / f"prob_{epoch}_{iter_step}.png"
-        dense_depth_file = epoch_dir / f"dense_depth_{epoch}_{iter_step}.png"
-        dense_depth_prob = epoch_dir / f"dense_depth_prob_{epoch}_{iter_step}.png"
 
         # save the images:
         save_img(rgb[0], rgb_file)
@@ -193,8 +132,6 @@ class AbsRel_depth:
         save_img(s[0], s_file)
         save_img(f[0], f_file)
         save_img(min_max_norm(prob[0]), prob_file)
-        # save_img(min_max_norm(dense_out[0, :1, :, :]), dense_depth_file)
-        # save_img(min_max_norm(dense_out[0, 1:2, :, :]), dense_depth_prob)
 
     def train(
             self,
@@ -208,9 +145,6 @@ class AbsRel_depth:
     ):
         # train mode
         self.network.train()
-        # # Use DistributedDataParallel:
-        # self.network = DDP(self.network, device_ids=[rank])
-        # self.network = torch.c                                                                                                                                                            ompile(self.network)
 
         self.network = DDP(self.network, device_ids=[rank], find_unused_parameters=False)
         # create optimizer
@@ -242,13 +176,9 @@ class AbsRel_depth:
             checkpoint.clear()
             print('release memory checkpoint')
             del checkpoint
-            # 修改学习率
-            # for param_group in optimizer.param_groups:
-            #     param_group['lr'] = 0.00005
 
         # learning rate scheduler
         scheduler = MultiStepLR(optimizer, milestones=[20, 40], gamma=0.5, last_epoch=(start_epoch - 1))
-        
         
 
         # verbose stuff
@@ -258,8 +188,6 @@ class AbsRel_depth:
             model_dir.mkdir(parents=True, exist_ok=True)
             log_dir.mkdir(parents=True, exist_ok=True)
 
-            # tensorboard summarywriter
-            # summary = SummaryWriter(str(log_dir / "tensorboard"))
             # create a global time counter
             global_time = time.time()
             print("Starting the training process ... ")
@@ -326,15 +254,13 @@ class AbsRel_depth:
                                 elapsed, i, iteration_num, loss_adepth, loss_rdepth, loss_rgrad, global_step
                             )
                             # save intermediate results
-                            # self.save_imgs(rgb, point_map, depth, gt, s, f, prob, dense_out, log_dir, epoch, i)
                             self.save_imgs(rgb, point_map, depth, gt, s, f, prob, log_dir, epoch, i)
             if rank == 0:
                 total_dict[f'Epoch_{epoch}']={}
                 total_dict[f'Epoch_{epoch}']['loss_adepth'] = loss_adepth
                 total_dict[f'Epoch_{epoch}']['loss_rdepth'] = loss_rdepth
                 total_dict[f'Epoch_{epoch}']['loss_rgrad'] = loss_rgrad
-                # total_dict[f'Epoch_{epoch}'][f'batch_{i+1}']['loss_exp_prob'] = loss_exp_prob
-                
+
             # learning rate decay
             scheduler.step()
             
@@ -355,7 +281,6 @@ class AbsRel_depth:
                     torch.save({
                         'epoch': epoch,
                         'network_state_dict': self.network.module.state_dict(),
-                        # 'network_state_dict': self.network.state_dict(),
                         'optimizer_state_dict': optimizer.state_dict(),
                         'scaler_state_dict': scaler.state_dict(),
                     }, save_file)

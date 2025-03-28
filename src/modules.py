@@ -1,10 +1,8 @@
 from torch import Tensor
 import torch.nn as nn
 from torch.nn import Module, Conv2d, Sequential, UpsamplingNearest2d
-from .custom_blocks import BottleNeck, ResNeXtBottleneck, ViT, CNBlock, NormLayer
+from .custom_blocks import BottleNeck, ResNeXtBottleneck, CNBlock, NormLayer
 import torch
-from einops import rearrange, repeat
-
 
 class Encoder(nn.Module):
     def __init__(self, in_chans=5, dims=[96, 192, 384, 768], depths=[3, 3, 9, 3], dp_rate=0.0, norm_type='CNX'):

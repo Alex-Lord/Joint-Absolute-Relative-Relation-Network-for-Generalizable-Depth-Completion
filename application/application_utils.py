@@ -40,13 +40,13 @@ def depth_read(filename: Path) -> Tensor:
 
 def make_dir(File_Path):
     if not os.path.exists(File_Path):
+        
         # 目录不存在，进行创建操作
         os.makedirs(File_Path)  # 使用os.makedirs()方法创建多层目录
 
 
 class RGBPReader(object):
     def __init__(self):
-        # self.transform = trans.Resize((320, 448))
         self.rel = False
 
     @staticmethod

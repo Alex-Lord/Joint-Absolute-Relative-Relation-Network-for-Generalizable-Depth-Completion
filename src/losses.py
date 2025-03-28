@@ -2,7 +2,6 @@ import torch
 from torch import Tensor
 from torch.nn import Module, Parameter, L1Loss, MSELoss
 from torch.nn.functional import interpolate, conv2d
-import sys
 
 class Gradient2D(Module):
     def __init__(self):
@@ -19,25 +18,6 @@ class Gradient2D(Module):
         grad_y = conv2d(x, self.weight_y)
         return grad_x, grad_y
 
-# 修改后的损失计算模块
-class Loss_for_Prob(Module):
-    def __init__(self, epsilon=1):
-        super().__init__()
-        self.epsilon = epsilon
-    
-    def forward(self, output, target, hole, p):
-        # 孔洞区域混合
-        sampled_output = hole * output + (1.0 - hole) * target
-        
-        # 计算加权相对损失
-        error = (sampled_output - target) ** 2
-        weighted_error = (1 - p) * error / (2 * self.epsilon**2 + 1e-6)
-        
-        # 仅孔洞区域参与计算
-        masked_loss = hole * weighted_error
-        num_valid = torch.sum(hole) + 1e-6
-        return torch.sum(masked_loss) / num_valid
-
 
 class WeightedDataLoss(Module):
     def __init__(
@@ -53,15 +33,6 @@ class WeightedDataLoss(Module):
         number_valid = torch.sum(hole) + self.eps
         loss = self.loss_fun(sampled_output, target)
         out = loss / number_valid
-        # if torch.isnan(out).any():
-        #     if torch.isnan(target).any() or torch.isinf(target).any():
-        #         print("Target中存在inf或nan")
-        #     if torch.isnan(output).any() or torch.isinf(output).any():
-        #         print("output中存在inf或nan")
-        #     if torch.isnan(sampled_output).any() or torch.isinf(sampled_output).any():
-        #         print("sampled_output中存在inf或nan")
-        #     print(f'sampled_output_no_zeros={torch.is_nonzero(sampled_output.all())}, number_valid={number_valid}, loss_fun={loss}')
-        #     print(f'type(out)={type(out.item())}')
         return out
 
 class WeightedDataLossL2(Module):
@@ -78,15 +49,6 @@ class WeightedDataLossL2(Module):
         number_valid = torch.sum(hole) + self.eps
         loss = self.loss_fun(sampled_output, target)
         out = loss / number_valid
-        # if torch.isnan(out).any():
-        #     if torch.isnan(target).any() or torch.isinf(target).any():
-        #         print("Target中存在inf或nan")
-        #     if torch.isnan(output).any() or torch.isinf(output).any():
-        #         print("output中存在inf或nan")
-        #     if torch.isnan(sampled_output).any() or torch.isinf(sampled_output).any():
-        #         print("sampled_output中存在inf或nan")
-        #     print(f'sampled_output_no_zeros={torch.is_nonzero(sampled_output.all())}, number_valid={number_valid}, loss_fun={loss}')
-        #     print(f'type(out)={type(out.item())}')
         return out
 
 
@@ -131,8 +93,6 @@ class WeightedMSGradLoss(Module):
                 k_residual = interpolate(residual, scale_factor=scale_factor, recompute_scale_factor=True)
             loss += self.__gradient_loss__(k_residual)
             out = loss / number_valid
-            # if torch.isnan(out).any():
-            #     print(f'k_residual_no_zeros={torch.is_nonzero(k_residual.all())}, number_valid={number_valid}, loss_fun={loss}')
         return out
 
 class MaskedProbExpLoss(Module):

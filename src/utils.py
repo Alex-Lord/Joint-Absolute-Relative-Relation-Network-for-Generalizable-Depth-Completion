@@ -6,6 +6,7 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch import Tensor
+import numpy as np
 
 def on_load_checkpoint(checkpoint):
     keys_list = list(checkpoint['network_state_dict'].keys())
